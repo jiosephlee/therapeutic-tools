@@ -1,0 +1,122 @@
+{
+  "AMES": {
+    "task": "AMES",
+    "k": 27,
+    "accuracy": 0.783,
+    "f1": 0.8176,
+    "n_train": 5094,
+    "n_eval": 2184
+  },
+  "BBB_Martins": {
+    "task": "BBB_Martins",
+    "k": 27,
+    "accuracy": 0.8752,
+    "f1": 0.9245,
+    "n_train": 1421,
+    "n_eval": 609
+  },
+  "Bioavailability_Ma": {
+    "task": "Bioavailability_Ma",
+    "k": 27,
+    "accuracy": 0.7396,
+    "f1": 0.8377,
+    "n_train": 448,
+    "n_eval": 192
+  },
+  "CYP2C9_Substrate_CarbonMangels": {
+    "task": "CYP2C9_Substrate_CarbonMangels",
+    "k": 27,
+    "accuracy": 0.7164,
+    "f1": 0.3448,
+    "n_train": 468,
+    "n_eval": 201
+  },
+  "CYP2D6_Substrate_CarbonMangels": {
+    "task": "CYP2D6_Substrate_CarbonMangels",
+    "k": 27,
+    "accuracy": 0.7811,
+    "f1": 0.5926,
+    "n_train": 466,
+    "n_eval": 201
+  },
+  "CYP3A4_Substrate_CarbonMangels": {
+    "task": "CYP3A4_Substrate_CarbonMangels",
+    "k": 27,
+    "accuracy": 0.6287,
+    "f1": 0.6809,
+    "n_train": 468,
+    "n_eval": 202
+  },
+  "Carcinogens_Lagunin": {
+    "task": "Carcinogens_Lagunin",
+    "k": 27,
+    "accuracy": 0.8571,
+    "f1": 0.5385,
+    "n_train": 196,
+    "n_eval": 84
+  },
+  "ClinTox": {
+    "task": "ClinTox",
+    "k": 27,
+    "accuracy": 0.9144,
+    "f1": 0.3448,
+    "n_train": 1034,
+    "n_eval": 444
+  },
+  "DILI": {
+    "task": "DILI",
+    "k": 27,
+    "accuracy": 0.8182,
+    "f1": 0.8375,
+    "n_train": 332,
+    "n_eval": 143
+  },
+  "HIA_Hou": {
+    "task": "HIA_Hou",
+    "k": 27,
+    "accuracy": 0.9598,
+    "f1": 0.9751,
+    "n_train": 404,
+    "n_eval": 174
+  },
+  "PAMPA_NCATS": {
+    "task": "PAMPA_NCATS",
+    "k": 27,
+    "accuracy": 0.8756,
+    "f1": 0.9308,
+    "n_train": 1423,
+    "n_eval": 611
+  },
+  "Pgp_Broccatelli": {
+    "task": "Pgp_Broccatelli",
+    "k": 27,
+    "accuracy": 0.8497,
+    "f1": 0.8571,
+    "n_train": 852,
+    "n_eval": 366
+  },
+  "SARSCoV2_Vitro_Touret": {
+    "task": "SARSCoV2_Vitro_Touret",
+    "k": 27,
+    "accuracy": 0.935,
+    "f1": 0.0,
+    "n_train": 1038,
+    "n_eval": 446
+  },
+  "Skin_Reaction": {
+    "task": "Skin_Reaction",
+    "k": 27,
+    "accuracy": 0.5738,
+    "f1": 0.7204,
+    "n_train": 282,
+    "n_eval": 122
+  },
+  "hERG": {
+    "task": "hERG",
+    "k": 27,
+    "accuracy": 0.8122,
+    "f1": 0.8737,
+    "n_train": 458,
+    "n_eval": 197
+  }
+}
