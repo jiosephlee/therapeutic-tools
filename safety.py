@@ -3,10 +3,15 @@ Tool 6: Toxicophore Screening — semantic structural alert classification.
 
 Groups raw RDKit filter catalog matches into mechanistically meaningful
 toxicophore categories, each with a one-line note explaining why it matters.
+
+Also screens against ToxAlerts (OCHEM) endpoint-specific SMARTS patterns
+to provide direct task-relevant toxicity predictions.
 """
 
-from typing import Dict, Any, List, Tuple
-import re
+import os
+import csv
+from typing import Dict, Any, List, Tuple, Optional
+from functools import lru_cache
 
 
 # ── Semantic toxicophore categories ─────────────────────────────────────
@@ -169,6 +174,150 @@ def _classify_alert(description: str) -> str | None:
     return None
 
 
+# ── ToxAlerts (OCHEM) endpoint-specific screening ─────────────────────
+#
+# Maps ToxAlerts PROPERTY values to TDC task-relevant endpoint groups.
+
+_TOXALERTS_ENDPOINT_MAP = {
+    "Skin sensitization": (
+        "Skin sensitization",
+        "Structural alerts for skin sensitization via haptenation "
+        "(covalent binding to skin proteins). "
+        "Relevant to: Skin_Reaction."
+    ),
+    "Genotoxic carcinogenicity, mutagenicity": (
+        "Genotoxic carcinogenicity / mutagenicity",
+        "DNA-reactive motifs that cause mutations via direct genotoxic mechanisms. "
+        "Relevant to: AMES, Carcinogens_Lagunin."
+    ),
+    "Non-genotoxic carcinogenicity": (
+        "Non-genotoxic carcinogenicity",
+        "Promotes cancer through non-DNA-reactive mechanisms "
+        "(receptor activation, epigenetic changes, chronic inflammation). "
+        "Relevant to: Carcinogens_Lagunin, ClinTox."
+    ),
+    "Idiosyncratic toxicity (RM formation)": (
+        "Reactive metabolite formation (idiosyncratic toxicity)",
+        "Can form reactive metabolites via CYP metabolism that covalently "
+        "modify liver proteins, triggering immune-mediated hepatotoxicity. "
+        "Relevant to: DILI."
+    ),
+    "Reactive, unstable, toxic": (
+        "Reactive / unstable / toxic groups",
+        "Generally reactive or unstable functional groups flagged across "
+        "multiple toxicity endpoints. "
+        "Relevant to: AMES, DILI, ClinTox."
+    ),
+    "Potential electrophilic agents": (
+        "Electrophilic agents",
+        "Electrophilic centers that can react with biological nucleophiles "
+        "(protein thiols, DNA bases). "
+        "Relevant to: Skin_Reaction, AMES."
+    ),
+    "Chelating agents": (
+        "Chelating agents",
+        "Can sequester metal ions essential for enzyme function; "
+        "may interfere with ion channels. "
+        "Relevant to: hERG, ClinTox."
+    ),
+    "Developmental and mitochondrial toxicity": (
+        "Developmental / mitochondrial toxicity",
+        "Disrupts mitochondrial function or embryonic development. "
+        "Relevant to: ClinTox."
+    ),
+}
+
+# Properties to skip (not relevant to our TDC tasks or redundant with RDKit PAINS)
+_TOXALERTS_SKIP = {
+    "PAINS compounds", "Extended Functional Groups (EFG)", "Custom filters",
+    "AlphaScreen-GST-FHs", "AlphaScreen-HIS-FHs", "AlphaScreen-FHs",
+    "Biodegradable compounds", "Nonbiodegradable compounds",
+    "Acute Aquatic Toxicity", "Promiscuity",
+}
+
+_CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+
+
+@lru_cache(maxsize=1)
+def _load_toxalerts():
+    """Load and compile ToxAlerts SMARTS patterns from CSV.
+
+    Returns list of (alert_id, name, property, compiled_pattern) tuples,
+    or empty list if CSV not found.
+    """
+    from rdkit import Chem
+
+    csv_path = os.path.join(_CACHE_DIR, "toxalerts.csv")
+    if not os.path.exists(csv_path):
+        return []
+
+    with open(csv_path, "r") as f:
+        lines = [l for l in f if l.strip()]
+
+    reader = csv.DictReader(lines)
+    alerts = []
+    for r in reader:
+        smarts = (r.get("SMARTS") or "").strip()
+        prop = (r.get("PROPERTY") or "").strip()
+        if not smarts or smarts == "[ERROR]" or prop in _TOXALERTS_SKIP:
+            continue
+        if prop not in _TOXALERTS_ENDPOINT_MAP:
+            continue
+        pat = Chem.MolFromSmarts(smarts)
+        if pat is not None:
+            alerts.append((
+                (r.get("Alert ID") or "").strip(),
+                (r.get("NAME") or "").strip(),
+                prop,
+                pat,
+            ))
+    return alerts
+
+
+def _screen_toxalerts(smiles: str) -> Optional[str]:
+    """Screen against ToxAlerts endpoint-specific SMARTS patterns."""
+    from rdkit import Chem
+    from collections import OrderedDict
+
+    alerts = _load_toxalerts()
+    if not alerts:
+        return None
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+
+    # Find matching alerts, grouped by endpoint
+    grouped: OrderedDict[str, list] = OrderedDict()
+    for alert_id, name, prop, pat in alerts:
+        if mol.HasSubstructMatch(pat):
+            if prop not in grouped:
+                grouped[prop] = []
+            grouped[prop].append(name)
+
+    if not grouped:
+        return "Endpoint-Specific Alerts (ToxAlerts):\n- No endpoint-specific alerts found"
+
+    total_hits = sum(len(v) for v in grouped.values())
+    lines = [f"Endpoint-Specific Alerts (ToxAlerts, {total_hits} hits across {len(grouped)} endpoints):"]
+
+    for prop, alert_names in grouped.items():
+        display_name, note = _TOXALERTS_ENDPOINT_MAP[prop]
+        # Deduplicate and show unique alert names
+        unique_names = list(dict.fromkeys(alert_names))
+        lines.append(f"- {display_name} ({len(unique_names)} alerts)")
+        lines.append(f"  Why: {note}")
+        # Show up to 5 alert names
+        shown = unique_names[:5]
+        lines.append(f"  Alerts: {', '.join(shown)}")
+        if len(unique_names) > 5:
+            lines.append(f"  ... and {len(unique_names) - 5} more")
+
+    return "\n".join(lines)
+
+
+# ── Main entry point ──────────────────────────────────────────────────
+
 def screen_toxicophores(smiles: str) -> str:
     """
     Screen a molecule for toxicophores (structural alerts grouped by
@@ -178,6 +327,10 @@ def screen_toxicophores(smiles: str) -> str:
     are deduplicated and grouped into mechanistic categories such as
     'Michael acceptor', 'alkylating agent', or 'PAH', each with an
     explanation of why the pattern is toxicologically relevant.
+
+    Additionally screens against ToxAlerts (OCHEM) endpoint-specific
+    SMARTS patterns to identify alerts linked to specific toxicity
+    endpoints (skin sensitization, mutagenicity, DILI, etc.).
 
     Args:
         smiles: SMILES string of the molecule.
@@ -191,6 +344,13 @@ def screen_toxicophores(smiles: str) -> str:
         sections.append(_screen_structural_alerts(smiles))
     except Exception as e:
         sections.append(f"Toxicophore Screening: Error - {e}")
+
+    try:
+        ta_result = _screen_toxalerts(smiles)
+        if ta_result:
+            sections.append(f"\n{ta_result}")
+    except Exception as e:
+        sections.append(f"\nEndpoint-Specific Alerts: Error - {e}")
 
     try:
         sections.append(f"\n{_get_pharmacophore_counts(smiles)}")
@@ -303,9 +463,12 @@ TOOL_SCHEMA: Dict[str, Any] = {
             "specific toxicity mechanisms. Groups alerts into categories like 'Michael "
             "acceptor' (protein-reactive electrophile → skin sensitization), 'alkylating "
             "agent' (DNA-reactive → mutagenicity), 'PAH' (CYP-activated → carcinogenicity), "
-            "etc. Each category includes a mechanistic explanation. Also returns pharmacophore "
-            "feature counts (donor/acceptor/aromatic/hydrophobe). Use this to identify "
-            "structural liabilities and connect them to specific toxicity endpoints."
+            "etc. Each category includes a mechanistic explanation. Also screens against "
+            "ToxAlerts endpoint-specific patterns to flag alerts linked to skin sensitization, "
+            "mutagenicity (AMES), carcinogenicity, DILI (reactive metabolites), hERG "
+            "(chelators), and ClinTox. Returns pharmacophore feature counts "
+            "(donor/acceptor/aromatic/hydrophobe). Use this to identify structural "
+            "liabilities and connect them to specific toxicity endpoints."
         ),
         "parameters": {
             "type": "object",
