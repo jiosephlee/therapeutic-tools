@@ -182,48 +182,50 @@ _TOXALERTS_ENDPOINT_MAP = {
     "Skin sensitization": (
         "Skin sensitization",
         "Structural alerts for skin sensitization via haptenation "
-        "(covalent binding to skin proteins). "
-        "Relevant to: Skin_Reaction."
+        "(covalent binding to skin proteins)."
     ),
     "Genotoxic carcinogenicity, mutagenicity": (
         "Genotoxic carcinogenicity / mutagenicity",
-        "DNA-reactive motifs that cause mutations via direct genotoxic mechanisms. "
-        "Relevant to: AMES, Carcinogens_Lagunin."
+        "DNA-reactive motifs that cause mutations via direct genotoxic mechanisms."
     ),
     "Non-genotoxic carcinogenicity": (
         "Non-genotoxic carcinogenicity",
         "Promotes cancer through non-DNA-reactive mechanisms "
-        "(receptor activation, epigenetic changes, chronic inflammation). "
-        "Relevant to: Carcinogens_Lagunin, ClinTox."
+        "(receptor activation, epigenetic changes, chronic inflammation)."
     ),
     "Idiosyncratic toxicity (RM formation)": (
         "Reactive metabolite formation (idiosyncratic toxicity)",
         "Can form reactive metabolites via CYP metabolism that covalently "
-        "modify liver proteins, triggering immune-mediated hepatotoxicity. "
-        "Relevant to: DILI."
+        "modify liver proteins, triggering immune-mediated hepatotoxicity."
     ),
     "Reactive, unstable, toxic": (
         "Reactive / unstable / toxic groups",
-        "Generally reactive or unstable functional groups flagged across "
-        "multiple toxicity endpoints. "
-        "Relevant to: AMES, DILI, ClinTox."
+        "Generally reactive or unstable functional groups "
+        "flagged across multiple toxicity endpoints."
     ),
     "Potential electrophilic agents": (
         "Electrophilic agents",
         "Electrophilic centers that can react with biological nucleophiles "
-        "(protein thiols, DNA bases). "
-        "Relevant to: Skin_Reaction, AMES."
+        "(protein thiols, DNA bases)."
     ),
     "Chelating agents": (
         "Chelating agents",
         "Can sequester metal ions essential for enzyme function; "
-        "may interfere with ion channels. "
-        "Relevant to: hERG, ClinTox."
+        "may interfere with ion channels."
     ),
     "Developmental and mitochondrial toxicity": (
         "Developmental / mitochondrial toxicity",
-        "Disrupts mitochondrial function or embryonic development. "
-        "Relevant to: ClinTox."
+        "Disrupts mitochondrial function or embryonic development."
+    ),
+    "Promiscuity": (
+        "Promiscuous compounds",
+        "Structural motifs associated with non-specific activity across "
+        "many biological targets (frequent hitters)."
+    ),
+    "Acute Aquatic Toxicity": (
+        "Acute aquatic toxicity",
+        "Structural features associated with acute toxicity to aquatic "
+        "organisms, indicating general ecotoxicity and bioactivity."
     ),
 }
 
@@ -232,7 +234,6 @@ _TOXALERTS_SKIP = {
     "PAINS compounds", "Extended Functional Groups (EFG)", "Custom filters",
     "AlphaScreen-GST-FHs", "AlphaScreen-HIS-FHs", "AlphaScreen-FHs",
     "Biodegradable compounds", "Nonbiodegradable compounds",
-    "Acute Aquatic Toxicity", "Promiscuity",
 }
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
@@ -461,14 +462,13 @@ TOOL_SCHEMA: Dict[str, Any] = {
         "description": (
             "Screen a molecule for toxicophores — structural motifs associated with "
             "specific toxicity mechanisms. Groups alerts into categories like 'Michael "
-            "acceptor' (protein-reactive electrophile → skin sensitization), 'alkylating "
-            "agent' (DNA-reactive → mutagenicity), 'PAH' (CYP-activated → carcinogenicity), "
-            "etc. Each category includes a mechanistic explanation. Also screens against "
-            "ToxAlerts endpoint-specific patterns to flag alerts linked to skin sensitization, "
-            "mutagenicity (AMES), carcinogenicity, DILI (reactive metabolites), hERG "
-            "(chelators), and ClinTox. Returns pharmacophore feature counts "
-            "(donor/acceptor/aromatic/hydrophobe). Use this to identify structural "
-            "liabilities and connect them to specific toxicity endpoints."
+            "acceptor' (protein-reactive electrophile), 'alkylating agent' (DNA-reactive), "
+            "'PAH' (CYP-activated), etc. Each category includes a mechanistic explanation. "
+            "Also screens against ToxAlerts endpoint-specific patterns covering skin "
+            "sensitization, mutagenicity, carcinogenicity, reactive metabolite formation, "
+            "electrophilic reactivity, chelation, and promiscuity. Returns pharmacophore "
+            "feature counts (donor/acceptor/aromatic/hydrophobe). Use this to identify "
+            "structural liabilities and understand their toxicological mechanisms."
         ),
         "parameters": {
             "type": "object",
