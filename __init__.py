@@ -44,6 +44,9 @@ from .electronic import TOOL_SCHEMA as GET_ELECTRONIC_PROPERTIES_TOOL
 from .metabolism import predict_metabolism_sites
 from .metabolism import TOOL_SCHEMA as PREDICT_METABOLISM_SITES_TOOL
 
+from .scaffold import get_scaffold
+from .scaffold import TOOL_SCHEMA as GET_SCAFFOLD_TOOL
+
 
 # ============================================================
 # Tool registry
@@ -61,6 +64,7 @@ CONSOLIDATED_TOOLS: List[Dict[str, Any]] = [
     EVALUATE_ARITHMETIC_TOOL,
     GET_ELECTRONIC_PROPERTIES_TOOL,
     PREDICT_METABOLISM_SITES_TOOL,
+    GET_SCAFFOLD_TOOL,
 ]
 
 _FUNCTION_MAP = {
@@ -75,6 +79,7 @@ _FUNCTION_MAP = {
     "evaluate_arithmetic": evaluate_arithmetic,
     "get_electronic_properties": get_electronic_properties,
     "predict_metabolism_sites": predict_metabolism_sites,
+    "get_scaffold": get_scaffold,
 }
 
 
