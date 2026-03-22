@@ -21,6 +21,7 @@ import json as _json
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 _EMBEDDINGS_DIR = _CACHE_DIR
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "tdc", "raw")
 
 
 # ------------------------------------------------------------------
@@ -49,6 +50,23 @@ def _load_metadata() -> Optional[pd.DataFrame]:
     """Delegate to shared metadata_cache module."""
     from . import metadata_cache
     return metadata_cache._load_metadata()
+
+
+@lru_cache(maxsize=32)
+def _load_split_smiles(task: str) -> Optional[dict]:
+    """Load train/val SMILES sets for *task* from raw TDC data.
+
+    Returns dict with 'train' and 'val' sets, or None if files missing.
+    Tries both data/tdc/raw and data/TDC paths.
+    """
+    for base in [_DATA_DIR, os.path.join(os.path.dirname(__file__), "..", "..", "data", "TDC")]:
+        train_path = os.path.join(base, task, "train.csv")
+        val_path = os.path.join(base, task, "val.csv")
+        if os.path.exists(train_path) and os.path.exists(val_path):
+            train_smi = set(pd.read_csv(train_path)["Drug"].dropna())
+            val_smi = set(pd.read_csv(val_path)["Drug"].dropna())
+            return {"train": train_smi, "val": val_smi}
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -149,13 +167,29 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
     exact_mask = (train_smiles == smiles)
     similarities[exact_mask] = -np.inf
 
-    # Retrieve k=27 neighbors for neighborhood confidence, display top-k
-    neighborhood_k = 27
-    n_available = int((~exact_mask).sum())
-    effective_neighborhood_k = min(neighborhood_k, n_available)
-    display_k = min(k, n_available)
+    # --- Restrict neighbors to training split only ---
+    split_data = _load_split_smiles(task)
+    if split_data is not None:
+        train_smi_set = split_data["train"]
+        val_smi_set = split_data["val"]
+        all_train_mask = np.array([s in train_smi_set for s in train_smiles])
+        all_val_mask = np.array([s in val_smi_set for s in train_smiles])
+    else:
+        # Fallback: treat all as train (no split info available)
+        all_train_mask = np.ones(len(train_smiles), dtype=bool)
+        all_val_mask = np.zeros(len(train_smiles), dtype=bool)
 
-    top_neighborhood_idx = np.argsort(similarities)[::-1][:effective_neighborhood_k]
+    # Similarities restricted to train-only for neighbor retrieval
+    train_sims = similarities.copy()
+    train_sims[~all_train_mask] = -np.inf
+
+    # Retrieve k=27 train neighbors for neighborhood confidence, display top-k
+    neighborhood_k = 27
+    n_train_available = int((all_train_mask & ~exact_mask).sum())
+    effective_neighborhood_k = min(neighborhood_k, n_train_available)
+    display_k = min(k, n_train_available)
+
+    top_neighborhood_idx = np.argsort(train_sims)[::-1][:effective_neighborhood_k]
     top_k_idx = top_neighborhood_idx[:display_k]
 
     neighbors: List[dict] = []
@@ -166,28 +200,38 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
             "label": int(train_labels[idx]) if train_labels is not None else "N/A",
         })
 
-    # --- Neighborhood confidence: leave-one-out KNN accuracy/F1 on the 27 neighbors ---
-    neighborhood_acc = None
-    neighborhood_f1 = None
-    if train_labels is not None and effective_neighborhood_k >= 3:
-        nbr_embs = train_embeddings[top_neighborhood_idx]
-        nbr_labels = train_labels[top_neighborhood_idx].astype(int)
-        nbr_norms = np.linalg.norm(nbr_embs, axis=1, keepdims=True) + 1e-8
-        nbr_normed = nbr_embs / nbr_norms
+    # --- Dev neighborhood confidence: predict nearest val neighbors using train embeddings ---
+    dev_neighborhood = {"acc": None, "f1": None, "k": 0}
 
-        # Leave-one-out: for each of the 27 neighbors, predict its label
-        # using majority vote of the other 26
-        loo_preds = []
-        for i in range(effective_neighborhood_k):
-            sims_i = nbr_normed @ nbr_normed[i]
-            sims_i[i] = -np.inf  # exclude self
-            # Use remaining neighbors as voters
-            voter_idx = np.argsort(sims_i)[::-1][:effective_neighborhood_k - 1]
-            voter_labels = nbr_labels[voter_idx]
-            loo_preds.append(int(np.round(voter_labels.mean())))
+    if train_labels is not None:
+        val_sims = similarities.copy()
+        val_sims[~all_val_mask] = -np.inf
+        n_val_available = int((all_val_mask & ~exact_mask).sum())
+        eff_val_k = min(neighborhood_k, n_val_available)
 
-        neighborhood_acc = accuracy_score(nbr_labels, loo_preds)
-        neighborhood_f1 = f1_score(nbr_labels, loo_preds, zero_division=0)
+        if eff_val_k >= 3:
+            val_nbr_idx = np.argsort(val_sims)[::-1][:eff_val_k]
+            # Precompute train-only embeddings for KNN prediction
+            train_only_idx = np.where(all_train_mask)[0]
+            train_only_embs = train_embeddings[train_only_idx]
+            train_only_labels = train_labels[train_only_idx].astype(int)
+            t_norms = np.linalg.norm(train_only_embs, axis=1, keepdims=True) + 1e-8
+            train_only_normed = train_only_embs / t_norms
+
+            val_true = []
+            val_pred = []
+            for vi in val_nbr_idx:
+                v_emb = train_embeddings[vi]
+                v_norm = v_emb / (np.linalg.norm(v_emb) + 1e-8)
+                v_sims = train_only_normed @ v_norm
+                top_voters = np.argsort(v_sims)[::-1][:neighborhood_k]
+                voter_labels = train_only_labels[top_voters]
+                val_true.append(int(train_labels[vi]))
+                val_pred.append(int(np.round(voter_labels.mean())))
+
+            dev_neighborhood["acc"] = accuracy_score(val_true, val_pred)
+            dev_neighborhood["f1"] = f1_score(val_true, val_pred, zero_division=0)
+            dev_neighborhood["k"] = eff_val_k
 
     # --- contrastive example (closest opposite-label molecule) ---
     contrastive = None
@@ -203,7 +247,7 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
             query_label = None
 
         if query_label is not None:
-            opposite_mask = (train_labels != query_label) & ~exact_mask
+            opposite_mask = (train_labels != query_label) & ~exact_mask & all_train_mask
             if np.any(opposite_mask):
                 contra_sims = similarities.copy()
                 contra_sims[~opposite_mask] = -np.inf
@@ -216,9 +260,7 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
 
     return _format_results(
         smiles, task, neighbors, contrastive,
-        neighborhood_acc=neighborhood_acc,
-        neighborhood_f1=neighborhood_f1,
-        neighborhood_k=effective_neighborhood_k,
+        dev_neighborhood=dev_neighborhood,
     )
 
 
@@ -296,9 +338,18 @@ def _get_fg_summary(smiles: str) -> Optional[str]:
         return None
 
 
-def _format_neighbor(idx: int, neighbor: dict, mcs_summary: Optional[str]) -> str:
+def _label_str(label) -> str:
+    """Convert numeric label to A/B string."""
+    if label == 1:
+        return "B"
+    elif label == 0:
+        return "A"
+    return str(label)
+
+
+def _format_neighbor(idx: int, neighbor: dict) -> str:
     """Format a single neighbor for output."""
-    label_str = neighbor['label']
+    label_str = _label_str(neighbor['label'])
     line = (
         f"{idx}. {neighbor['smiles']} "
         f"(similarity: {neighbor['similarity']:.4f}, label: {label_str})"
@@ -306,12 +357,6 @@ def _format_neighbor(idx: int, neighbor: dict, mcs_summary: Optional[str]) -> st
     fg = _get_fg_summary(neighbor['smiles'])
     if fg:
         line += f"\n   Functional groups: {fg}"
-    if mcs_summary:
-        line += f"\n   MCS: {mcs_summary}"
-    # Murcko scaffold
-    nbr_scaffold = _get_murcko_scaffold(neighbor['smiles'])
-    if nbr_scaffold:
-        line += f"\n   Murcko scaffold: {nbr_scaffold}"
     return line
 
 
@@ -320,45 +365,39 @@ def _format_results(
     task: str,
     neighbors: List[dict],
     contrastive: Optional[dict],
-    neighborhood_acc: Optional[float] = None,
-    neighborhood_f1: Optional[float] = None,
-    neighborhood_k: int = 27,
+    dev_neighborhood: Optional[dict] = None,
 ) -> str:
     """Format the full similarity search output."""
-    # Global KNN model metrics for this task
+    sections = [f"Similar Molecules for task '{task}' based on embeddings", ""]
+
+    # Embeddings-based KNN metrics
     knn_metrics = _load_knn_metrics().get(task, {})
-    global_acc = knn_metrics.get("accuracy")
-    global_f1 = knn_metrics.get("f1")
+    val_acc = knn_metrics.get("val_accuracy")
+    val_f1 = knn_metrics.get("val_f1")
+    has_dev = dev_neighborhood and dev_neighborhood.get("acc") is not None
 
-    header = f"Similar Molecules for task '{task}'"
-    if global_acc is not None:
-        header += f" (KNN global accuracy={global_acc:.3f}, F1={global_f1:.3f})"
-    sections = [header + ":", ""]
-
-    # Query scaffold
-    query_scaffold = _get_murcko_scaffold(query_smiles)
-    if query_scaffold:
-        sections.append(f"Query Murcko scaffold: {query_scaffold}")
+    if val_acc is not None or has_dev:
+        sections.append("Embeddings-based KNN Metrics:")
+        if val_acc is not None:
+            sections.append(f"- global -> accuracy={val_acc:.3f}, F1={val_f1:.3f}")
+        if has_dev:
+            sections.append(
+                f"- local ({dev_neighborhood['k']} nearest val neighbors) -> "
+                f"accuracy={dev_neighborhood['acc']:.3f}, F1={dev_neighborhood['f1']:.3f}"
+            )
         sections.append("")
 
-    # Neighborhood confidence: how well KNN performs locally
-    if neighborhood_acc is not None:
-        sections.append(
-            f"Neighborhood confidence (leave-one-out on {neighborhood_k} nearest neighbors): "
-            f"accuracy={neighborhood_acc:.3f}, F1={neighborhood_f1:.3f}"
-        )
-        sections.append("")
-
-    sections.append("Nearest Neighbors:")
+    sections.append("Nearest Neighbors from Training Set:")
     for i, neighbor in enumerate(neighbors, 1):
-        mcs = _compute_mcs_summary(query_smiles, neighbor["smiles"])
-        sections.append(_format_neighbor(i, neighbor, mcs))
+        sections.append(_format_neighbor(i, neighbor))
 
+    # Only show contrastive example if its label is not already in the top-k
     if contrastive:
-        sections.append("")
-        sections.append("Nearest Contrastive Example (opposite label):")
-        mcs = _compute_mcs_summary(query_smiles, contrastive["smiles"])
-        sections.append(_format_neighbor(len(neighbors) + 1, contrastive, mcs))
+        top_k_labels = {n["label"] for n in neighbors}
+        if contrastive["label"] not in top_k_labels:
+            sections.append("")
+            sections.append("Nearest Contrastive Example (opposite label):")
+            sections.append(_format_neighbor(len(neighbors) + 1, contrastive))
 
     return "\n".join(sections)
 

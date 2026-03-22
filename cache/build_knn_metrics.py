@@ -1,8 +1,9 @@
 """
 Precompute KNN accuracy and F1 per TDC task using cached embeddings.
 
-For each task, runs leave-one-out KNN (k=27) on the training embeddings,
-then evaluates on the val+test splits. Saves per-task metrics to knn_metrics.json.
+For each task, evaluates KNN (k=27) on the val and test splits separately.
+Saves per-task metrics (val_accuracy, val_f1, test_accuracy, test_f1) to
+knn_metrics.json.
 
 Usage:
     python build_knn_metrics.py [--k 27]
@@ -21,8 +22,19 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 import pandas as pd
 
 CACHE_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.join(CACHE_DIR, "..", "..", "..", "..", "data", "tdc", "raw")
+_PROJECT_ROOT = os.path.join(CACHE_DIR, "..", "..", "..")
+_DATA_CANDIDATES = [
+    os.path.join(_PROJECT_ROOT, "data", "tdc", "raw"),
+    os.path.join(_PROJECT_ROOT, "data", "TDC"),
+]
 EXCLUDE_DATASETS = {"Tox21", "HIV", "herg_central"}
+
+
+def _find_data_dir():
+    for d in _DATA_CANDIDATES:
+        if os.path.isdir(d):
+            return d
+    return _DATA_CANDIDATES[0]  # fallback
 
 
 def cosine_knn_predict(query_emb, train_embs, train_labels, k, exclude_idx=None):
@@ -54,10 +66,11 @@ def evaluate_task(task, k=27):
     all_embs = d["embeddings"].astype(np.float32)
     all_labels = d["labels"]
 
-    # Load train/val/test splits to identify which are test
-    train_path = os.path.join(os.path.abspath(DATA_DIR), task, "train.csv")
-    val_path = os.path.join(os.path.abspath(DATA_DIR), task, "val.csv")
-    test_path = os.path.join(os.path.abspath(DATA_DIR), task, "test.csv")
+    # Load train/val/test splits
+    data_dir = os.path.abspath(_find_data_dir())
+    train_path = os.path.join(data_dir, task, "train.csv")
+    val_path = os.path.join(data_dir, task, "val.csv")
+    test_path = os.path.join(data_dir, task, "test.csv")
 
     if not os.path.exists(train_path):
         return None
@@ -69,42 +82,43 @@ def evaluate_task(task, k=27):
     # Build indices
     smi_list = list(all_smiles)
     train_idx = [i for i, s in enumerate(smi_list) if s in train_smi]
-    eval_idx = [i for i, s in enumerate(smi_list) if s in (val_smi | test_smi)]
+    val_idx = [i for i, s in enumerate(smi_list) if s in val_smi]
+    test_idx = [i for i, s in enumerate(smi_list) if s in test_smi]
 
-    if not train_idx or not eval_idx:
-        # Fallback: leave-one-out on all data
-        train_idx = list(range(len(smi_list)))
-        eval_idx = train_idx
+    if not train_idx or (not val_idx and not test_idx):
+        return None
 
     train_embs = all_embs[train_idx]
     train_labels = all_labels[train_idx]
 
-    y_true = []
-    y_pred = []
-    for idx in eval_idx:
-        emb = all_embs[idx]
-        label = int(all_labels[idx])
+    def _predict_split(split_idx):
+        y_true, y_pred = [], []
+        for idx in split_idx:
+            emb = all_embs[idx]
+            label = int(all_labels[idx])
+            exclude = None
+            if idx in train_idx:
+                exclude = train_idx.index(idx)
+            pred, _, _ = cosine_knn_predict(emb, train_embs, train_labels, k, exclude_idx=exclude)
+            y_true.append(label)
+            y_pred.append(pred)
+        if not y_true:
+            return None, None
+        return accuracy_score(y_true, y_pred), f1_score(y_true, y_pred, zero_division=0)
 
-        # If this sample is also in train, exclude it
-        exclude = None
-        if idx in train_idx:
-            exclude = train_idx.index(idx)
+    val_acc, val_f1 = _predict_split(val_idx)
+    test_acc, test_f1 = _predict_split(test_idx)
 
-        pred, _, _ = cosine_knn_predict(emb, train_embs, train_labels, k, exclude_idx=exclude)
-        y_true.append(label)
-        y_pred.append(pred)
-
-    acc = accuracy_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred, zero_division=0)
-
-    return {
+    result = {
         "task": task,
         "k": k,
-        "accuracy": round(acc, 4),
-        "f1": round(f1, 4),
         "n_train": len(train_idx),
-        "n_eval": len(eval_idx),
     }
+    if val_acc is not None:
+        result.update({"val_accuracy": round(val_acc, 4), "val_f1": round(val_f1, 4), "n_val": len(val_idx)})
+    if test_acc is not None:
+        result.update({"test_accuracy": round(test_acc, 4), "test_f1": round(test_f1, 4), "n_test": len(test_idx)})
+    return result
 
 
 def main():
@@ -126,7 +140,12 @@ def main():
         metrics = evaluate_task(task, k=args.k)
         if metrics:
             results[task] = metrics
-            print(f"acc={metrics['accuracy']:.4f}, f1={metrics['f1']:.4f}")
+            parts = []
+            if "val_accuracy" in metrics:
+                parts.append(f"val_acc={metrics['val_accuracy']:.4f}, val_f1={metrics['val_f1']:.4f}")
+            if "test_accuracy" in metrics:
+                parts.append(f"test_acc={metrics['test_accuracy']:.4f}, test_f1={metrics['test_f1']:.4f}")
+            print(", ".join(parts))
         else:
             print("skipped")
 

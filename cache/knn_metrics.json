@@ -2,121 +2,177 @@
   "AMES": {
     "task": "AMES",
     "k": 27,
-    "accuracy": 0.783,
-    "f1": 0.8176,
     "n_train": 5094,
-    "n_eval": 2184
+    "val_accuracy": 0.8006,
+    "val_f1": 0.8288,
+    "n_val": 727,
+    "test_accuracy": 0.7742,
+    "test_f1": 0.8121,
+    "n_test": 1457
   },
   "BBB_Martins": {
     "task": "BBB_Martins",
     "k": 27,
-    "accuracy": 0.8752,
-    "f1": 0.9245,
     "n_train": 1421,
-    "n_eval": 609
+    "val_accuracy": 0.8916,
+    "val_f1": 0.936,
+    "n_val": 203,
+    "test_accuracy": 0.867,
+    "test_f1": 0.9184,
+    "n_test": 406
   },
   "Bioavailability_Ma": {
     "task": "Bioavailability_Ma",
     "k": 27,
-    "accuracy": 0.7396,
-    "f1": 0.8377,
     "n_train": 448,
-    "n_eval": 192
+    "val_accuracy": 0.7969,
+    "val_f1": 0.8785,
+    "n_val": 64,
+    "test_accuracy": 0.7109,
+    "test_f1": 0.8159,
+    "n_test": 128
   },
   "CYP2C9_Substrate_CarbonMangels": {
     "task": "CYP2C9_Substrate_CarbonMangels",
     "k": 27,
-    "accuracy": 0.7164,
-    "f1": 0.3448,
     "n_train": 468,
-    "n_eval": 201
+    "val_accuracy": 0.8182,
+    "val_f1": 0.5,
+    "n_val": 66,
+    "test_accuracy": 0.6667,
+    "test_f1": 0.2857,
+    "n_test": 135
   },
   "CYP2D6_Substrate_CarbonMangels": {
     "task": "CYP2D6_Substrate_CarbonMangels",
     "k": 27,
-    "accuracy": 0.7811,
-    "f1": 0.5926,
     "n_train": 466,
-    "n_eval": 201
+    "val_accuracy": 0.7727,
+    "val_f1": 0.5455,
+    "n_val": 66,
+    "test_accuracy": 0.7852,
+    "test_f1": 0.6133,
+    "n_test": 135
   },
   "CYP3A4_Substrate_CarbonMangels": {
     "task": "CYP3A4_Substrate_CarbonMangels",
     "k": 27,
-    "accuracy": 0.6287,
-    "f1": 0.6809,
     "n_train": 468,
-    "n_eval": 202
+    "val_accuracy": 0.7015,
+    "val_f1": 0.75,
+    "n_val": 67,
+    "test_accuracy": 0.5926,
+    "test_f1": 0.6452,
+    "n_test": 135
   },
   "Carcinogens_Lagunin": {
     "task": "Carcinogens_Lagunin",
     "k": 27,
-    "accuracy": 0.8571,
-    "f1": 0.5385,
     "n_train": 196,
-    "n_eval": 84
+    "val_accuracy": 0.8571,
+    "val_f1": 0.5,
+    "n_val": 28,
+    "test_accuracy": 0.8571,
+    "test_f1": 0.5556,
+    "n_test": 56
   },
   "ClinTox": {
     "task": "ClinTox",
     "k": 27,
-    "accuracy": 0.9144,
-    "f1": 0.3448,
     "n_train": 1034,
-    "n_eval": 444
+    "val_accuracy": 0.8844,
+    "val_f1": 0.2609,
+    "n_val": 147,
+    "test_accuracy": 0.9293,
+    "test_f1": 0.4,
+    "n_test": 297
   },
   "DILI": {
     "task": "DILI",
     "k": 27,
-    "accuracy": 0.8182,
-    "f1": 0.8375,
     "n_train": 332,
-    "n_eval": 143
+    "val_accuracy": 0.8511,
+    "val_f1": 0.8814,
+    "n_val": 47,
+    "test_accuracy": 0.8021,
+    "test_f1": 0.8119,
+    "n_test": 96
   },
   "HIA_Hou": {
     "task": "HIA_Hou",
     "k": 27,
-    "accuracy": 0.9598,
-    "f1": 0.9751,
     "n_train": 404,
-    "n_eval": 174
+    "val_accuracy": 0.9474,
+    "val_f1": 0.9697,
+    "n_val": 57,
+    "test_accuracy": 0.9658,
+    "test_f1": 0.978,
+    "n_test": 117
   },
   "PAMPA_NCATS": {
     "task": "PAMPA_NCATS",
     "k": 27,
-    "accuracy": 0.8756,
-    "f1": 0.9308,
     "n_train": 1423,
-    "n_eval": 611
+    "val_accuracy": 0.9064,
+    "val_f1": 0.9493,
+    "n_val": 203,
+    "test_accuracy": 0.8603,
+    "test_f1": 0.9212,
+    "n_test": 408
   },
   "Pgp_Broccatelli": {
     "task": "Pgp_Broccatelli",
     "k": 27,
-    "accuracy": 0.8497,
-    "f1": 0.8571,
     "n_train": 852,
-    "n_eval": 366
+    "val_accuracy": 0.8843,
+    "val_f1": 0.9054,
+    "n_val": 121,
+    "test_accuracy": 0.8327,
+    "test_f1": 0.827,
+    "n_test": 245
+  },
+  "SARSCOV2_3CLPro_Diamond": {
+    "task": "SARSCOV2_3CLPro_Diamond",
+    "k": 27,
+    "n_train": 616,
+    "val_accuracy": 0.8864,
+    "val_f1": 0.1667,
+    "n_val": 88,
+    "test_accuracy": 0.892,
+    "test_f1": 0.3448,
+    "n_test": 176
   },
   "SARSCoV2_Vitro_Touret": {
     "task": "SARSCoV2_Vitro_Touret",
     "k": 27,
-    "accuracy": 0.935,
-    "f1": 0.0,
     "n_train": 1038,
-    "n_eval": 446
+    "val_accuracy": 0.9189,
+    "val_f1": 0.0,
+    "n_val": 148,
+    "test_accuracy": 0.943,
+    "test_f1": 0.0,
+    "n_test": 298
   },
   "Skin_Reaction": {
     "task": "Skin_Reaction",
     "k": 27,
-    "accuracy": 0.5738,
-    "f1": 0.7204,
     "n_train": 282,
-    "n_eval": 122
+    "val_accuracy": 0.575,
+    "val_f1": 0.7213,
+    "n_val": 40,
+    "test_accuracy": 0.5732,
+    "test_f1": 0.72,
+    "n_test": 82
   },
   "hERG": {
     "task": "hERG",
     "k": 27,
-    "accuracy": 0.8122,
-    "f1": 0.8737,
     "n_train": 458,
-    "n_eval": 197
+    "val_accuracy": 0.8154,
+    "val_f1": 0.8537,
+    "n_val": 65,
+    "test_accuracy": 0.8106,
+    "test_f1": 0.8815,
+    "n_test": 132
   }
 }
