@@ -30,8 +30,10 @@ def get_molecule_profile(smiles: str) -> str:
             return cached[prop]
         return compute_fn()
 
-    from rdkit import Chem
-    from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, Crippen, QED as QEDModule
+    import os
+    from collections import Counter
+    from rdkit import Chem, RDConfig
+    from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, Crippen, QED as QEDModule, ChemicalFeatures
 
     mol = _mol_from_smiles(smiles)
 
@@ -65,6 +67,12 @@ def get_molecule_profile(smiles: str) -> str:
     stereocenters = int(_c("NumAtomStereoCenters", lambda: float(rdMolDescriptors.CalcNumAtomStereoCenters(mol))))
     unspecified_stereo = int(_c("NumUnspecifiedAtomStereoCenters", lambda: float(rdMolDescriptors.CalcNumUnspecifiedAtomStereoCenters(mol))))
 
+    # Pharmacophore features
+    fdef = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
+    factory = ChemicalFeatures.BuildFeatureFactory(fdef)
+    feats = factory.GetFeaturesForMol(mol)
+    pharm_counts = Counter(f.GetFamily() for f in feats)
+
     lipinski_details = []
     if mw > 500: lipinski_details.append("MW > 500")
     if logp > 5: lipinski_details.append("logP > 5")
@@ -87,6 +95,13 @@ def get_molecule_profile(smiles: str) -> str:
         f"- Bertz complexity: {bertz:.2f}",
         f"- Amide bonds: {amide_bonds}",
         f"- Stereocenters: {stereocenters} ({unspecified_stereo} unspecified)",
+        f"- Pharmacophore features: "
+        f"{pharm_counts.get('Hydrophobe', 0)} hydrophobic, "
+        f"{pharm_counts.get('LumpedHydrophobe', 0)} lumped-hydrophobic, "
+        f"{pharm_counts.get('Aromatic', 0)} aromatic, "
+        f"{pharm_counts.get('NegIonizable', 0)} neg-ionizable, "
+        f"{pharm_counts.get('PosIonizable', 0)} pos-ionizable, "
+        f"{pharm_counts.get('ZnBinder', 0)} Zn-binder",
     ]
     return "\n".join(lines)
 
@@ -110,7 +125,8 @@ TOOL_SCHEMA: Dict[str, Any] = {
             "Get a comprehensive molecular profile including identity (MW, formula), "
             "drug-likeness (QED, Lipinski violations), key physicochemical properties "
             "(logP, TPSA, HBD, HBA, rotatable bonds, Fsp3, molar refractivity), "
-            "charge information, and complexity metrics (Bertz CT, stereocenters)."
+            "charge information, complexity metrics (Bertz CT, stereocenters), and "
+            "pharmacophore feature counts (hydrophobic, aromatic, ionizable, Zn-binder)."
         ),
         "parameters": {
             "type": "object",
