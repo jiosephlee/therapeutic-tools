@@ -9,10 +9,13 @@ Usage:
 
 import os
 import torch
+import numpy as np
 from functools import lru_cache
 from typing import List, Tuple, Optional
 
 from rdkit import Chem
+from rdkit.Chem import AllChem
+from rdkit import DataStructs
 
 # Use absolute imports so this works both standalone and as a subpackage
 try:
@@ -25,24 +28,24 @@ except ImportError:
 
 CYP_LIST = ['1A2', '2A6', '2B6', '2C8', '2C9', '2C19', '2D6', '2E1', '3A4']
 
-# 10-fold CV performance metrics per isoform (from training with TDC exclusion)
+# 10-fold CV performance metrics per isoform (retrain v2, with TDC exclusion)
 CYP_METRICS = {
-    '1A2':  {'f1': 0.694, 'top3': 0.896},
-    '2A6':  {'f1': 0.796, 'top3': 0.963},
-    '2B6':  {'f1': 0.842, 'top3': 0.948},
-    '2C8':  {'f1': 0.800, 'top3': 0.889},
-    '2C9':  {'f1': 0.702, 'top3': 0.983},
-    '2C19': {'f1': 0.779, 'top3': 0.949},
-    '2D6':  {'f1': 0.707, 'top3': 0.920},
-    '2E1':  {'f1': 0.750, 'top3': 0.953},
-    '3A4':  {'f1': 0.611, 'top3': 0.831},
+    '1A2':  {'f1': 0.733, 'top3': 0.902},
+    '2A6':  {'f1': 0.793, 'top3': 0.963},
+    '2B6':  {'f1': 0.869, 'top3': 0.959},
+    '2C8':  {'f1': 0.825, 'top3': 0.946},
+    '2C9':  {'f1': 0.795, 'top3': 0.992},
+    '2C19': {'f1': 0.791, 'top3': 0.958},
+    '2D6':  {'f1': 0.740, 'top3': 0.927},
+    '2E1':  {'f1': 0.737, 'top3': 0.953},
+    '3A4':  {'f1': 0.647, 'top3': 0.824},
 }
 
 
 class ATTNSOMPredictor:
     """Load a trained ATTNSOM checkpoint and predict SoM for single molecules."""
 
-    def __init__(self, checkpoint_path: str, device: str = None):
+    def __init__(self, checkpoint_path: str, device: str = None, k_neighbors: int = 3):
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
@@ -70,6 +73,53 @@ class ATTNSOMPredictor:
         self.model.load_state_dict(ckpt["model_state_dict"])
         self.model.eval()
         self._cache = {}  # (canonical_smiles, cyp_key) -> result dict
+
+        # Build training set fingerprints for applicability domain scoring
+        self.k_neighbors = k_neighbors
+        self._train_fps = self._load_training_fingerprints(checkpoint_path)
+
+    def _load_training_fingerprints(self, checkpoint_path: str):
+        """Load training molecules from SDF files and compute Morgan fingerprints."""
+        dataset_dir = os.path.join(os.path.dirname(checkpoint_path), "..", "ATTNSOM", "cyp_dataset")
+        if not os.path.isdir(dataset_dir):
+            # Try relative to this file
+            dataset_dir = os.path.join(os.path.dirname(__file__), "cyp_dataset")
+        if not os.path.isdir(dataset_dir):
+            return []
+
+        seen = set()
+        fps = []
+        for sdf_file in sorted(os.listdir(dataset_dir)):
+            if not sdf_file.endswith('.sdf'):
+                continue
+            suppl = Chem.SDMolSupplier(os.path.join(dataset_dir, sdf_file))
+            for mol in suppl:
+                if mol is None:
+                    continue
+                canon = Chem.MolToSmiles(Chem.RemoveHs(mol))
+                if canon in seen:
+                    continue
+                seen.add(canon)
+                fp = AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(canon), 2, nBits=2048)
+                fps.append(fp)
+        return fps
+
+    def applicability_score(self, smiles: str) -> float:
+        """Compute applicability domain score: mean Tanimoto to k nearest training neighbors.
+
+        Returns a value between 0 and 1. Higher = more similar to training data.
+        """
+        if not self._train_fps:
+            return -1.0  # Unknown
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return 0.0
+        query_fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+
+        sims = DataStructs.BulkTanimotoSimilarity(query_fp, self._train_fps)
+        top_k = sorted(sims, reverse=True)[:self.k_neighbors]
+        return float(np.mean(top_k))
 
     def predict(
         self, smiles: str, cyp: Optional[str] = None, threshold: float = 0.5
@@ -101,7 +151,8 @@ class ATTNSOMPredictor:
         data, _ = mol_to_graph(mol, canon_smi)
 
         cyps_to_run = [cyp] if cyp else self.cyp_list
-        results = {"smiles": canon_smi, "predictions": []}
+        ad_score = self.applicability_score(canon_smi)
+        results = {"smiles": canon_smi, "applicability": ad_score, "predictions": []}
 
         for c in cyps_to_run:
             if c not in self.cyp2idx:
@@ -144,7 +195,18 @@ class ATTNSOMPredictor:
 
 def format_prediction(result: dict) -> str:
     """Format prediction result as a human-readable string."""
-    lines = [f"ATTNSOM CYP450 Site-of-Metabolism Prediction", ""]
+    ad = result.get("applicability", -1)
+    if ad >= 0:
+        if ad >= 0.6:
+            ad_label = "high"
+        elif ad >= 0.35:
+            ad_label = "moderate"
+        else:
+            ad_label = "low — molecule is dissimilar to training data"
+        lines = [f"ATTNSOM CYP450 Site-of-Metabolism Prediction "
+                 f"(confidence: {ad_label}, similarity={ad:.2f})", ""]
+    else:
+        lines = ["ATTNSOM CYP450 Site-of-Metabolism Prediction", ""]
 
     for pred in result["predictions"]:
         cyp = pred["cyp"]
