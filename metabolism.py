@@ -1,57 +1,70 @@
 """
-Expansion Tool: Metabolic Site Prediction — CYP450 soft spots.
+Expansion Tool: Metabolic Site Prediction & Metabolite Prediction.
 
-Predicts which atoms/bonds on a molecule are most likely to be oxidized by
-cytochrome P450 enzymes.
-
-Backends (tried in order by "auto"):
-  1. FAME3R   — generic Phase 1 & 2 SoM (pip install fame3r, Python >= 3.10)
-  2. RDKit    — SMARTS-based heuristic, zero extra deps
+Two complementary predictions:
+  1. Sites of Metabolism (SoM): ATTNSOM (isoform-specific CYP Phase 1) or
+     RDKit SMARTS heuristic fallback.
+  2. Metabolite Structures: SyGMa (rule-based Phase 1 + Phase 2 metabolite
+     prediction with scored pathways).
 
 Why this tool matters:
   - CYP inhibition tasks (e.g. CYP2C19): SoM shows WHERE a CYP isoform
     attacks -> model reasons about active-site binding vs. being metabolized.
   - DILI: SoM -> identify reactive metabolite formation sites (epoxides,
     quinone methides, etc.) that trigger GSH depletion -> hepatotoxicity.
+    SyGMa shows Phase 2 conjugation (glucuronidation, GSH) that detoxifies.
   - AMES: Metabolic activation can convert pro-mutagens into DNA-reactive species.
+    SyGMa predicts the actual metabolite structures formed.
 """
 
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
+
+ALL_ISOFORMS = ["1A2", "2A6", "2B6", "2C8", "2C9", "2C19", "2D6", "2E1", "3A4"]
 
 
-def predict_metabolism_sites(smiles: str, engine: str = "auto") -> str:
+def predict_metabolism_sites(
+    smiles: str,
+    isoforms: Optional[List[str]] = None,
+) -> str:
     """
-    Predict sites of CYP450 metabolism (soft spots) on a molecule.
+    Predict sites of CYP450 metabolism and likely metabolite structures.
 
-    Returns atom-level predictions showing which sites are most
-    susceptible to oxidative metabolism.
+    Returns:
+      1. CYP SoM predictions (ATTNSOM isoform-specific, or RDKit heuristic fallback)
+      2. Predicted metabolites with pathways and scores (SyGMa Phase 1 + Phase 2)
 
     Args:
         smiles: SMILES string of the molecule.
-        engine: Backend to use. "auto" tries ATTNSOM -> FAME3R -> RDKit in order.
-                Options: "attnsom", "fame3r", "rdkit", "auto".
+        isoforms: List of CYP isoforms to predict (e.g. ["2C9", "3A4"]).
+                  Defaults to all 9 isoforms.
 
     Returns:
-        Multi-line formatted string with metabolism site predictions.
+        Multi-line formatted string with metabolism predictions.
     """
-    if engine == "auto":
-        try:
-            return _predict_attnsom(smiles)
-        except (ImportError, FileNotFoundError):
-            pass
-        try:
-            return _predict_fame3r(smiles)
-        except ImportError:
-            pass
-        return _predict_rdkit_heuristic(smiles)
-    elif engine == "attnsom":
-        return _predict_attnsom(smiles)
-    elif engine == "fame3r":
-        return _predict_fame3r(smiles)
-    elif engine == "rdkit":
-        return _predict_rdkit_heuristic(smiles)
-    else:
-        raise ValueError(f"Unknown engine: {engine!r}. Use 'auto', 'attnsom', 'fame3r', or 'rdkit'.")
+    if isoforms is not None:
+        # Validate isoform names
+        invalid = [i for i in isoforms if i not in ALL_ISOFORMS]
+        if invalid:
+            return (
+                f"Error: Unknown isoform(s): {', '.join(invalid)}. "
+                f"Valid isoforms: {', '.join(ALL_ISOFORMS)}"
+            )
+
+    sections = []
+
+    # SoM prediction: ATTNSOM -> RDKit fallback
+    try:
+        sections.append(_predict_attnsom(smiles, isoforms=isoforms))
+    except (ImportError, FileNotFoundError):
+        sections.append(_predict_rdkit_heuristic(smiles))
+
+    # Metabolite prediction: SyGMa Phase 1 + Phase 2
+    try:
+        sections.append(_predict_sygma(smiles))
+    except Exception:
+        pass  # SyGMa is optional
+
+    return "\n\n".join(sections)
 
 
 _ATTNSOM_CACHE = None
@@ -76,32 +89,39 @@ def _load_attnsom_cache():
     return _ATTNSOM_CACHE
 
 
-def _predict_attnsom(smiles: str) -> str:
+def _predict_attnsom(smiles: str, isoforms: Optional[List[str]] = None) -> str:
     """Predict metabolism sites using ATTNSOM (GNN + cross-isoform attention).
 
     Checks the precomputed disk cache first; falls back to live inference.
     """
     from rdkit import Chem
+    from .ATTNSOM.inference import ATTNSOMPredictor, format_prediction
+    import json as _json
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles!r}")
     canon_smi = Chem.MolToSmiles(mol)
 
-    # Check disk cache
+    # Check disk cache — stored as pre-formatted string, need to re-parse
+    # for isoform filtering
     cache = _load_attnsom_cache()
     if canon_smi in cache:
-        return cache[canon_smi]
+        cached_str = cache[canon_smi]
+        if isoforms is None:
+            return cached_str
+        # Filter cached output by isoforms
+        return _filter_attnsom_output(cached_str, isoforms)
 
     # Cache miss — run live inference
     import os
-    from .ATTNSOM.inference import ATTNSOMPredictor, format_prediction
 
     global _ATTNSOM_PREDICTOR
     if "_ATTNSOM_PREDICTOR" not in globals() or _ATTNSOM_PREDICTOR is None:
         ckpt_path = os.environ.get("ATTNSOM_CHECKPOINT")
         if not ckpt_path:
             candidates = [
+                "/vast/projects/myatskar/design-documents/hf_home/attnsom_results_v2/attnsom_checkpoint.pt",
                 "/vast/projects/myatskar/design-documents/hf_home/attnsom_results/attnsom_checkpoint.pt",
                 os.path.join(os.path.dirname(__file__), "ATTNSOM", "results", "attnsom_checkpoint.pt"),
             ]
@@ -111,114 +131,96 @@ def _predict_attnsom(smiles: str) -> str:
         _ATTNSOM_PREDICTOR = ATTNSOMPredictor(ckpt_path)
 
     result = _ATTNSOM_PREDICTOR.predict(canon_smi)
+    if isoforms is not None:
+        result["predictions"] = [
+            p for p in result["predictions"] if p["cyp"] in isoforms
+        ]
     return format_prediction(result)
 
 
 _ATTNSOM_PREDICTOR = None
 
 
-def _predict_fame3r(smiles: str) -> str:
-    """Predict metabolism sites using FAME3R (CDPKit + trained RandomForest).
+def _filter_attnsom_output(text: str, isoforms: List[str]) -> str:
+    """Filter pre-formatted ATTNSOM output to only include specified isoforms."""
+    lines = text.split("\n")
+    filtered = []
+    include_block = True
+    som_count = 0
 
-    FAME3R does NOT ship a pretrained model. You must first train one:
-        fame3r train -i training_data.sdf -o /path/to/models/
+    for line in lines:
+        # Detect isoform blocks: "  CYP2C9 (model F1=..."
+        if line.strip().startswith("CYP") and "(model" in line:
+            cyp_name = line.strip().split("(")[0].strip().replace("CYP", "")
+            include_block = cyp_name in isoforms
+            if include_block:
+                filtered.append(line)
+            continue
 
-    Then set FAME3R_MODEL_DIR env var to the directory containing the trained
-    model files (e.g. all/random_forest_classifier.joblib).
+        if line.strip().startswith("Summary:"):
+            # Recompute summary for filtered isoforms
+            filtered.append("")
+            filtered.append(f"Summary: {som_count} total SoM sites across {len(isoforms)} CYP isoform(s)")
+            continue
 
-    Falls back: set FAME3R_MODEL_DIR to a directory with subdirectory 'all/'
-    containing 'random_forest_classifier.joblib'.
+        if include_block:
+            filtered.append(line)
+            # Count SoM sites
+            if "*SoM*" in line:
+                som_count += 1
+
+    return "\n".join(filtered)
+
+
+def _predict_sygma(smiles: str, max_metabolites: int = 10) -> str:
+    """Predict metabolite structures using SyGMa (Phase 1 + Phase 2 rules).
+
+    SyGMa applies reaction SMARTS rules derived from literature to enumerate
+    likely metabolites with empirical probability scores. Phase 2 covers
+    glucuronidation, sulfation, GSH conjugation, acetylation, glycination.
     """
-    import os
-    import numpy as np
-
-    model_dir = os.environ.get("FAME3R_MODEL_DIR")
-    if not model_dir:
-        raise ImportError("FAME3R_MODEL_DIR not set")
-
-    # Look for the trained classifier
-    clf_path = os.path.join(model_dir, "all", "random_forest_classifier.joblib")
-    if not os.path.exists(clf_path):
-        # Also try direct path
-        clf_path = os.path.join(model_dir, "random_forest_classifier.joblib")
-        if not os.path.exists(clf_path):
-            raise ImportError(f"No trained FAME3R model found at {model_dir}")
-
-    import joblib
-    from CDPL.Chem import parseSMILES
-    from fame3r import FAME3RVectorizer
-    from sklearn.pipeline import make_pipeline
-
-    # Parse SMILES with CDPKit
-    cdpkit_mol = parseSMILES(smiles)
-
-    # Build atom array (CDPKit atoms need special handling for numpy)
-    atoms = list(cdpkit_mol.atoms)
-    n_atoms = len(atoms)
-    atom_array = np.empty((n_atoms, 1), dtype=object)
-    atom_array[:, 0] = atoms
-
-    # Build prediction pipeline: vectorizer + trained classifier
-    classifier = joblib.load(clf_path)
-    pipeline = make_pipeline(
-        FAME3RVectorizer(input="cdpkit").fit(),
-        classifier,
-    )
-
-    # Get per-atom SoM probabilities
-    probs = pipeline.predict_proba(atom_array)[:, 1]
-
-    # Also get RDKit mol for atom symbol lookup
+    import sygma
     from rdkit import Chem
-    rdkit_mol = Chem.MolFromSmiles(smiles)
 
-    # Rank by probability
-    ranked = sorted(enumerate(probs), key=lambda x: x[1], reverse=True)
-    significant = [(idx, p) for idx, p in ranked if p > 0.1] or ranked[:5]
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise ValueError(f"Invalid SMILES: {smiles!r}")
 
-    lines = ["CYP450 Sites of Metabolism (FAME3R — Phase 1 & 2):", ""]
-    for rank, (atom_idx, prob) in enumerate(significant[:10], 1):
-        try:
-            if rdkit_mol is not None:
-                atom = rdkit_mol.GetAtomWithIdx(atom_idx)
-                mech = _infer_mechanism(rdkit_mol, atom_idx)
-                lines.append(f"  {rank}. Atom {atom_idx} ({atom.GetSymbol()}), p = {prob:.3f} — {mech}")
-            else:
-                lines.append(f"  {rank}. Atom {atom_idx}, p = {prob:.3f}")
-        except Exception:
-            lines.append(f"  {rank}. Atom {atom_idx}, p = {prob:.3f}")
+    sc = sygma.Scenario([
+        [sygma.ruleset['phase1'], 1],
+        [sygma.ruleset['phase2'], 1],
+    ])
+    tree = sc.run(mol)
+    tree.calc_scores()
 
-    n_high = len([p for _, p in ranked if p > 0.3])
-    lines += ["", f"Summary: {n_high} high-probability sites (p > 0.3)"]
+    results = tree.to_list()
+    # Skip parent molecule
+    metabolites = [r for r in results if r['SyGMa_pathway'].strip() != 'parent;']
+
+    lines = ["Predicted Metabolites (SyGMa — Phase 1 + Phase 2):", ""]
+    if not metabolites:
+        lines.append("No metabolites predicted.")
+        return "\n".join(lines)
+
+    for i, r in enumerate(metabolites[:max_metabolites], 1):
+        met_smi = Chem.MolToSmiles(r['SyGMa_metabolite'])
+        pathway = r['SyGMa_pathway'].strip().rstrip('; \n').replace('; \n', ' -> ')
+        score = r['SyGMa_score']
+        lines.append(f"  {i}. {met_smi}")
+        lines.append(f"     Pathway: {pathway} (score={score:.4f})")
+
+    # Classify Phase 1 vs Phase 2
+    phase2_keywords = {'glucuronid', 'sulph', 'sulfat', 'GSH', 'acetyl', 'glycin',
+                       'methylat', 'glutathion'}
+    n_phase2 = sum(1 for r in metabolites[:max_metabolites]
+                   if any(kw in r['SyGMa_pathway'].lower() for kw in phase2_keywords))
+    n_phase1 = min(len(metabolites), max_metabolites) - n_phase2
+
+    lines.append("")
+    lines.append(f"Summary: {len(metabolites)} metabolites predicted "
+                 f"(showing top {min(len(metabolites), max_metabolites)}: "
+                 f"{n_phase1} Phase 1, {n_phase2} Phase 2)")
     return "\n".join(lines)
-
-
-def _infer_mechanism(mol, atom_idx: int) -> str:
-    """Infer metabolic mechanism from atom chemical environment."""
-    atom = mol.GetAtomWithIdx(atom_idx)
-    symbol = atom.GetSymbol()
-    is_aromatic = atom.GetIsAromatic()
-    neighbors = [mol.GetAtomWithIdx(n.GetIdx()) for n in atom.GetNeighbors()]
-
-    if symbol == "C":
-        if is_aromatic:
-            return "aromatic hydroxylation"
-        if any(n.GetIsAromatic() for n in neighbors):
-            return "benzylic hydroxylation (CYP3A4, CYP2C9)"
-        for bond in atom.GetBonds():
-            if bond.GetBondTypeAsDouble() == 2.0:
-                return "allylic/vinylic oxidation"
-        return "aliphatic hydroxylation"
-    elif symbol == "N":
-        c_neighbors = [n for n in neighbors if n.GetSymbol() == "C" and not n.GetIsAromatic()]
-        if c_neighbors:
-            return "N-dealkylation (CYP3A4, CYP2D6)"
-        return "N-oxidation"
-    elif symbol == "O":
-        return "O-dealkylation (CYP2D6)"
-    elif symbol == "S":
-        return "S-oxidation -> sulfoxide/sulfone"
-    return "oxidation"
 
 
 def _predict_rdkit_heuristic(smiles: str) -> str:
@@ -282,24 +284,31 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "predict_metabolism_sites",
         "description": (
-            "Predict which atoms in a molecule are most likely to be oxidized by "
-            "cytochrome P450 enzymes. Uses ATTNSOM (GNN with cross-isoform attention, "
-            "9 CYP isoforms), FAME3R, or RDKit SMARTS heuristics as fallback. "
-            "Use for: (1) CYP inhibition tasks — SoM reasoning "
-            "about enzyme-substrate interactions; (2) DILI — identifying reactive metabolite "
-            "formation sites; (3) AMES — metabolic activation of pro-mutagens."
+            "Predict CYP450 sites of metabolism and likely metabolite structures. "
+            "Returns: (1) ATTNSOM isoform-specific SoM predictions showing which atoms "
+            "each CYP isoform is most likely to oxidize; (2) SyGMa metabolite predictions "
+            "with SMILES structures and pathways for both Phase 1 (oxidation, reduction, "
+            "hydrolysis) and Phase 2 (glucuronidation, sulfation, GSH conjugation, "
+            "acetylation, glycination). "
+            "Available CYP isoforms: 1A2, 2A6, 2B6, 2C8, 2C9, 2C19, 2D6, 2E1, 3A4. "
+            "Use for: (1) CYP inhibition/substrate tasks — SoM + metabolite reasoning; "
+            "(2) DILI — reactive metabolites vs. detoxifying conjugation; "
+            "(3) AMES — metabolic activation of pro-mutagens."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "smiles": {"type": "string", "description": "SMILES string of the molecule."},
-                "engine": {
-                    "type": "string",
-                    "description": "Prediction backend: 'auto' (default), 'attnsom', 'fame3r', or 'rdkit'.",
-                    "enum": ["auto", "attnsom", "fame3r", "rdkit"]
-                }
+                "isoforms": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "CYP isoforms to predict (e.g. ['2C9', '3A4']). "
+                        "Defaults to all 9 isoforms if omitted."
+                    ),
+                },
             },
-            "required": ["smiles"],
+            "required": ["smiles", "isoforms"],
             "additionalProperties": False,
         }
     }
