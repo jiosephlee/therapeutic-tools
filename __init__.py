@@ -25,8 +25,8 @@ from .adme import TOOL_SCHEMA as ASSESS_ADME_PROPERTIES_TOOL
 from .three_d import get_3d_properties
 from .three_d import TOOL_SCHEMA as GET_3D_PROPERTIES_TOOL
 
-from .safety import screen_safety
-from .safety import TOOL_SCHEMA as SCREEN_SAFETY_TOOL
+from .safety import screen_toxicophores, screen_safety  # screen_safety is backward-compat alias
+from .safety import TOOL_SCHEMA as SCREEN_TOXICOPHORES_TOOL
 
 from .similarity import find_similar_molecules
 from .similarity import TOOL_SCHEMA as FIND_SIMILAR_MOLECULES_TOOL
@@ -44,6 +44,9 @@ from .electronic import TOOL_SCHEMA as GET_ELECTRONIC_PROPERTIES_TOOL
 from .metabolism import predict_metabolism_sites
 from .metabolism import TOOL_SCHEMA as PREDICT_METABOLISM_SITES_TOOL
 
+from .scaffold import get_scaffold
+from .scaffold import TOOL_SCHEMA as GET_SCAFFOLD_TOOL
+
 
 # ============================================================
 # Tool registry
@@ -55,12 +58,13 @@ CONSOLIDATED_TOOLS: List[Dict[str, Any]] = [
     ANALYZE_RING_SYSTEMS_TOOL,
     ASSESS_ADME_PROPERTIES_TOOL,
     GET_3D_PROPERTIES_TOOL,
-    SCREEN_SAFETY_TOOL,
+    SCREEN_TOXICOPHORES_TOOL,
     FIND_SIMILAR_MOLECULES_TOOL,
     REMOVE_SALTS_TOOL,
     EVALUATE_ARITHMETIC_TOOL,
     GET_ELECTRONIC_PROPERTIES_TOOL,
     PREDICT_METABOLISM_SITES_TOOL,
+    GET_SCAFFOLD_TOOL,
 ]
 
 _FUNCTION_MAP = {
@@ -69,12 +73,13 @@ _FUNCTION_MAP = {
     "analyze_ring_systems": analyze_ring_systems,
     "assess_adme_properties": assess_adme_properties,
     "get_3d_properties": get_3d_properties,
-    "screen_safety": screen_safety,
+    "screen_toxicophores": screen_toxicophores,
     "find_similar_molecules": find_similar_molecules,
     "remove_salts": remove_salts,
     "evaluate_arithmetic": evaluate_arithmetic,
     "get_electronic_properties": get_electronic_properties,
     "predict_metabolism_sites": predict_metabolism_sites,
+    "get_scaffold": get_scaffold,
 }
 
 

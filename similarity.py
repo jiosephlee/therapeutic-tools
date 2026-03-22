@@ -256,6 +256,21 @@ def _compute_mcs_summary(query_smiles: str, neighbor_smiles: str) -> Optional[st
 
 
 # ------------------------------------------------------------------
+# Scaffold helper
+# ------------------------------------------------------------------
+
+@lru_cache(maxsize=4096)
+def _get_murcko_scaffold(smiles: str) -> Optional[str]:
+    """Return Murcko scaffold SMILES, cached. Returns None on failure."""
+    try:
+        from .scaffold import murcko_scaffold_smiles
+        s = murcko_scaffold_smiles(smiles)
+        return s if s else None
+    except Exception:
+        return None
+
+
+# ------------------------------------------------------------------
 # Formatting
 # ------------------------------------------------------------------
 
@@ -293,6 +308,10 @@ def _format_neighbor(idx: int, neighbor: dict, mcs_summary: Optional[str]) -> st
         line += f"\n   Functional groups: {fg}"
     if mcs_summary:
         line += f"\n   MCS: {mcs_summary}"
+    # Murcko scaffold
+    nbr_scaffold = _get_murcko_scaffold(neighbor['smiles'])
+    if nbr_scaffold:
+        line += f"\n   Murcko scaffold: {nbr_scaffold}"
     return line
 
 
@@ -315,6 +334,12 @@ def _format_results(
     if global_acc is not None:
         header += f" (KNN global accuracy={global_acc:.3f}, F1={global_f1:.3f})"
     sections = [header + ":", ""]
+
+    # Query scaffold
+    query_scaffold = _get_murcko_scaffold(query_smiles)
+    if query_scaffold:
+        sections.append(f"Query Murcko scaffold: {query_scaffold}")
+        sections.append("")
 
     # Neighborhood confidence: how well KNN performs locally
     if neighborhood_acc is not None:
