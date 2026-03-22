@@ -659,6 +659,38 @@ _TOXALERTS_SKIP = {
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 
 
+import re as _re
+
+def _fix_greek_letters(name: str) -> str:
+    """Restore Greek letters corrupted to '?' in ToxAlerts CSV export."""
+    # α,β-Unsaturated (two-letter pattern)
+    name = name.replace("?, ?-", "α,β-").replace("?,?-", "α,β-").replace("?,? ", "α,β-")
+    name = _re.sub(r"\(?,\?-unsaturated", "(α,β-unsaturated", name)
+    # 1,2 ? / 1,3 ? / 1,4 ? → 1,2- / 1,3- / 1,4- (lost dash)
+    name = _re.sub(r"(\d,\d) \?[ -]", r"\1-", name)
+    # Context-specific single ? replacements
+    _BETA = [
+        "?-Lactam", "?-Lacton", "?-Diketone", "?-dithione",
+        "?-Naphthol", "?-Propiolactone", "?-Aminonaphtalene",
+        "?- sultone", "?-sultone",
+    ]
+    _ALPHA = [
+        "?-Halo", "?-halo", "?-Carbonyl", "?-Amino", "?-amino",
+        "?-Hydroxy", "?-hydroxy", "?-Oxo",  "?-Substituted",
+        "?-posi", "?-halogen",
+    ]
+    for pat in _BETA:
+        name = name.replace(pat, "β" + pat[1:])
+    for pat in _ALPHA:
+        name = name.replace(pat, "α" + pat[1:])
+    # Remaining standalone ? likely Greek — remove stray ones
+    name = name.replace("?yano", "Cyano")
+    name = name.replace("valence?states", "valence states")
+    name = name.replace("compounds?", "compounds")
+    name = name.replace("DDT?", "DDT ")
+    return name
+
+
 @lru_cache(maxsize=1)
 def _load_toxalerts():
     """Load and compile ToxAlerts SMARTS patterns from CSV."""
@@ -676,6 +708,9 @@ def _load_toxalerts():
     for r in reader:
         smarts = (r.get("SMARTS") or "").strip()
         prop = (r.get("PROPERTY") or "").strip()
+        # Fix corrupted Greek letters (α/β lost during CSV export)
+        name_raw = (r.get("NAME") or "").strip()
+        name_raw = _fix_greek_letters(name_raw)
         if not smarts or smarts == "[ERROR]" or prop in _TOXALERTS_SKIP:
             continue
         if prop not in _TOXALERTS_ENDPOINT_MAP:
@@ -684,25 +719,28 @@ def _load_toxalerts():
         if pat is not None:
             alerts.append((
                 (r.get("Alert ID") or "").strip(),
-                (r.get("NAME") or "").strip(),
+                name_raw,
                 prop,
                 pat,
             ))
     return alerts
 
 
-def _screen_toxalerts(smiles: str) -> Optional[str]:
-    """Screen against ToxAlerts endpoint-specific SMARTS patterns."""
+def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
+    """Screen against ToxAlerts and return structured data.
+
+    Returns dict mapping display_name -> {"note": str, "alerts": list[str]}.
+    """
     from rdkit import Chem
     from collections import OrderedDict
 
     alerts = _load_toxalerts()
     if not alerts:
-        return None
+        return {}
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
-        return None
+        return {}
 
     grouped: OrderedDict[str, list] = OrderedDict()
     for alert_id, name, prop, pat in alerts:
@@ -711,23 +749,13 @@ def _screen_toxalerts(smiles: str) -> Optional[str]:
                 grouped[prop] = []
             grouped[prop].append(name)
 
-    if not grouped:
-        return "Endpoint-Specific Alerts (ToxAlerts):\n- No endpoint-specific alerts found"
-
-    total_hits = sum(len(v) for v in grouped.values())
-    lines = [f"Endpoint-Specific Alerts (ToxAlerts, {total_hits} hits across {len(grouped)} endpoints):"]
-
+    result = {}
     for prop, alert_names in grouped.items():
         display_name, note = _TOXALERTS_ENDPOINT_MAP[prop]
         unique_names = list(dict.fromkeys(alert_names))
-        lines.append(f"- {display_name} ({len(unique_names)} alerts)")
-        lines.append(f"  Why: {note}")
-        shown = unique_names[:5]
-        lines.append(f"  Alerts: {', '.join(shown)}")
-        if len(unique_names) > 5:
-            lines.append(f"  ... and {len(unique_names) - 5} more")
+        result[display_name] = {"note": note, "alerts": unique_names}
 
-    return "\n".join(lines)
+    return result
 
 
 # ── Main entry point ──────────────────────────────────────────────────
@@ -754,28 +782,54 @@ def screen_toxicophores(smiles: str) -> str:
     """
     sections = []
 
+    # Collect structured data from both sources
+    rdkit_data = {}
+    toxalerts_data = {}
     try:
-        sections.append(_screen_structural_alerts(smiles))
+        rdkit_data = _screen_structural_alerts_data(smiles)
     except Exception as e:
-        sections.append(f"Toxicophore Screening: Error - {e}")
+        sections.append(f"Structural Alerts: Error screening RDKit catalogs - {e}")
+    try:
+        toxalerts_data = _screen_toxalerts_data(smiles)
+    except Exception as e:
+        sections.append(f"Structural Alerts: Error screening ToxAlerts - {e}")
 
-    try:
-        ta_result = _screen_toxalerts(smiles)
-        if ta_result:
-            sections.append(f"\n{ta_result}")
-    except Exception as e:
-        sections.append(f"\nEndpoint-Specific Alerts: Error - {e}")
+    # Merge into unified "Structural Alerts" section
+    # RDKit categories first, then ToxAlerts endpoint categories
+    merged = dict(rdkit_data)
+    for cat_name, data in toxalerts_data.items():
+        if cat_name in merged:
+            # Merge alerts, keeping existing note
+            existing_alerts = set(a.lower() for a in merged[cat_name]["alerts"])
+            for a in data["alerts"]:
+                if a.lower() not in existing_alerts:
+                    merged[cat_name]["alerts"].append(a)
+                    existing_alerts.add(a.lower())
+        else:
+            merged[cat_name] = data
 
-    try:
-        sections.append(f"\n{_get_pharmacophore_counts(smiles)}")
-    except Exception as e:
-        sections.append(f"\nPharmacophore Features: Error - {e}")
+    if not merged:
+        sections.append("Structural Alerts:\nNo structural alerts found.")
+    else:
+        lines = [f"Structural Alerts ({len(merged)} categories):"]
+        for i, (cat_name, data) in enumerate(merged.items(), 1):
+            alert_names = data["alerts"]
+            lines.append("")
+            lines.append(f"{i}. {cat_name}")
+            lines.append(data["note"])
+            shown = alert_names[:8]
+            trail = f", ... and {len(alert_names) - 8} more" if len(alert_names) > 8 else ""
+            lines.append(f"Matched alerts: {', '.join(shown)}{trail}")
+        sections.append("\n".join(lines))
 
     return "\n".join(sections)
 
 
-def _screen_structural_alerts(smiles: str) -> str:
-    """Screen against all RDKit alert catalogs, grouped by mechanism."""
+def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
+    """Screen against all RDKit alert catalogs and return structured data.
+
+    Returns dict mapping category_name -> {"note": str, "alerts": list[str]}.
+    """
     from rdkit import Chem
     from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
     from collections import OrderedDict
@@ -799,68 +853,33 @@ def _screen_structural_alerts(smiles: str) -> str:
             raw_alerts.append(desc)
 
     if not raw_alerts:
-        return "Toxicophore Screening:\n- No structural alerts found"
+        return {}
 
     # Group into semantic categories
-    grouped: OrderedDict[str, list] = OrderedDict()
-    category_notes: dict = {}
+    grouped: OrderedDict[str, Dict] = OrderedDict()
     uncategorized = []
 
     for alert in raw_alerts:
         cat = _classify_alert(alert)
         if cat:
             if cat not in grouped:
-                grouped[cat] = []
-                for name, note, _ in _TOXICOPHORE_CATEGORIES:
+                note = ""
+                for name, n, _ in _TOXICOPHORE_CATEGORIES:
                     if name == cat:
-                        category_notes[cat] = note
+                        note = n
                         break
-            grouped[cat].append(alert)
+                grouped[cat] = {"note": note, "alerts": []}
+            grouped[cat]["alerts"].append(alert)
         else:
             uncategorized.append(alert)
 
-    lines = [f"Toxicophore Screening ({len(raw_alerts)} raw alerts → {len(grouped)} categories):"]
-
-    for cat_name, alerts in grouped.items():
-        note = category_notes.get(cat_name, "")
-        lines.append(f"- {cat_name} ({len(alerts)} alerts)")
-        lines.append(f"  Why: {note}")
-
     if uncategorized:
-        lines.append(f"- Other ({len(uncategorized)} alerts): {', '.join(uncategorized[:5])}")
-        if len(uncategorized) > 5:
-            lines.append(f"  ... and {len(uncategorized) - 5} more")
+        grouped["Other structural flags"] = {
+            "note": "Miscellaneous structural alerts from medicinal chemistry filters.",
+            "alerts": uncategorized,
+        }
 
-    return "\n".join(lines)
-
-
-def _get_pharmacophore_counts(smiles: str) -> str:
-    """Extract pharmacophore feature counts."""
-    import os
-    from collections import Counter
-    from rdkit import Chem, RDConfig
-    from rdkit.Chem import ChemicalFeatures
-
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError(f"Invalid SMILES: {smiles!r}")
-
-    fdef = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
-    factory = ChemicalFeatures.BuildFeatureFactory(fdef)
-    features = factory.GetFeaturesForMol(mol)
-
-    counts = Counter()
-    for feat in features:
-        counts[feat.GetFamily()] += 1
-
-    lines = ["Pharmacophore Feature Counts:"]
-    if counts:
-        for family, count in counts.items():
-            lines.append(f"- {family}: {count}")
-    else:
-        lines.append("- None detected")
-
-    return "\n".join(lines)
+    return grouped
 
 
 # Keep backward compatibility
