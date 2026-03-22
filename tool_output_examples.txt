@@ -1,0 +1,517 @@
+======================================================================
+MOLECULE: Diclofenac (OC(=O)Cc1ccccc1Nc1c(Cl)cccc1Cl)
+======================================================================
+
+--- get_molecule_profile ---
+Molecular Profile:
+- Molecular weight: 296.15 Da (exact: 295.0167)
+- Heavy atoms: 19, Heteroatoms: 5
+- logP (Wildman-Crippen): 4.3641
+- TPSA: 49.33 Å²
+- H-bond donors: 2, H-bond acceptors: 2
+- Rotatable bonds: 4
+- Fraction sp3 carbons (Fsp3): 0.0714
+- Molar refractivity: 77.53
+- QED (drug-likeness, 0-1): 0.8807
+- Lipinski violations: 0
+- Net formal charge: 0 (cationic centers: 0, anionic centers: 0)
+- Bertz complexity: 593.90
+- Amide bonds: 0
+- Stereocenters: 0 (0 unspecified)
+- Pharmacophore features: 4 hydrophobic, 2 lumped-hydrophobic, 2 aromatic, 1 neg-ionizable, 0 pos-ionizable, 1 Zn-binder
+
+--- analyze_functional_groups ---
+Functional groups (* denotes attachment points):
+- secondary aromatic amine: N ([*]N[*])
+- carboxylic acid: OC=O ([*]C(=O)O)
+- Aryl chloride (x2): Cl ([*]Cl), Cl ([*]Cl)
+- benzene (x2): c1ccccc1 ([*]c1ccccc1[*]), c1ccccc1 ([*]c1c([*])cccc1[*])
+
+--- analyze_ring_systems ---
+Ring System Analysis:
+- Total fused ring systems: 2
+- Largest fused system size (rings): 1
+- Largest aromatic system size (rings): 1
+- Has PAH-like system (>=3 fused aromatic rings): No
+- Largest individual ring size: 6
+- Has macrocycle (>=12 atoms): No (Count: 0)
+- Spiro centers: 0
+- Bridgehead atoms: 0
+- Systems (Largest first):
+  - System has 1 fused ring(s) (6-membered). Aromatic rings: 1. Total atoms: 6. No heteroatoms.
+  - System has 1 fused ring(s) (6-membered). Aromatic rings: 1. Total atoms: 6. No heteroatoms.
+
+Ring Type Counts:
+- Total rings: 2
+- Aromatic: 2, Aliphatic: 0, Saturated: 0
+- Heterocycles: 0 (aromatic: 0, aliphatic: 0, saturated: 0)
+
+Aromaticity:
+- Aromatic atoms: 12 / 19 (0.6316)
+
+Topology Indices:
+- Hall-Kier alpha: -1.7100
+- Kappa1: 13.7154, Kappa2: 5.9544, Kappa3: 3.3976
+- Balaban J: 2.3559
+- IPC: 18978.9356
+
+--- assess_adme_properties ---
+pKa Prediction:
+  Most acidic pKa: 4.09
+  Most basic pKa: 3.83
+  Acidic sites: 2, Basic sites: 1
+Ionization State Classification (at pH 7.4):
+- Number of protonation states enumerated: 1
+- Unique net charges observed: -1
+- Charge class distribution: acid: 1
+- Has positive states: No
+- Has negative states: Yes
+- Is ambiguous (pKa near target pH): No
+- Most representative state:
+  - SMILES: O=C([O-])Cc1ccccc1Nc1c(Cl)cccc1Cl
+  - Net charge: -1
+  - Charge class: acid
+
+LogD at pH 7.4: 1.05
+Solubility (ESOL heuristic): ESOL logS: -4.6289
+
+--- get_3d_properties ---
+3D Polar Surface Area (ePSA):
+3D conformation based estimation of PSA: 83.53
+3D conformation based estimation of Polar Fraction: 0.18
+
+3D Shape Descriptors:
+- PMI ratios (npr1, npr2): (0.4788, 0.7461) → intermediate
+- Radius of gyration: 3.1658 Å
+- Asphericity: 0.1647
+- Eccentricity: 0.8779
+- Inertial shape factor: 0.000584
+- Spherocity index: 0.2314
+
+--- screen_toxicophores ---
+Structural Alerts (3 categories):
+
+1. Skin sensitization
+Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+Matched alerts: Aromatic primary and secondary amines, Aromatic amines
+
+2. Acute aquatic toxicity
+Structural features associated with acute toxicity to aquatic organisms, indicating general ecotoxicity and bioactivity.
+Matched alerts: Aryl halide
+
+3. Reactive metabolite formation (idiosyncratic toxicity)
+Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+Matched alerts: Carboxylic acids
+
+--- get_electronic_properties ---
+Charge & EState Properties:
+- Max Gasteiger charge: 0.3074 (atom 1, C)
+- Min Gasteiger charge: -0.4810 (atom 0, O)
+- Charge polarization: 0.7884
+- Max EState index (nucleophilic proxy): 10.8273
+- Min EState index (electrophilic proxy): -0.8893
+
+Quantum Electronic Properties (GFN2-xTB):
+- HOMO energy: -9.8266 eV
+- LUMO energy: -6.9790 eV
+- HOMO-LUMO gap: 2.8476 eV
+- Dipole moment: 1.2400 Debye
+- Electrophilicity index (ω): 24.7950 eV
+- Total energy: -55.759066 Hartree
+
+--- predict_metabolism_sites ---
+ATTNSOM CYP450 Site-of-Metabolism Prediction
+
+  CYP2C9 (model F1=0.702, top-3 acc=0.983):
+    1. Atom 6 (C), p = 0.857 *SoM*
+    2. Atom 15 (C), p = 0.033
+    3. Atom 14 (C), p = 0.018
+    4. Atom 16 (C), p = 0.018
+    5. Atom 7 (C), p = 0.016
+    → 1 predicted SoM site(s)
+
+  CYP3A4 (model F1=0.611, top-3 acc=0.831):
+    1. Atom 6 (C), p = 0.694 *SoM*
+    2. Atom 14 (C), p = 0.023
+    3. Atom 16 (C), p = 0.023
+    4. Atom 5 (C), p = 0.016
+    5. Atom 3 (C), p = 0.016
+    → 1 predicted SoM site(s)
+
+
+Summary: 2 total SoM sites across 2 CYP isoform(s)
+
+CYP450 Sites of Metabolism (FAME3R — Phase 1 & 2):
+
+  1. Atom 7 (C), p = 0.700 — aromatic hydroxylation
+  2. Atom 14 (C), p = 0.574 — aromatic hydroxylation
+  3. Atom 16 (C), p = 0.574 — aromatic hydroxylation
+
+Summary: 3 high-probability sites (p > 0.3)
+
+--- get_scaffold ---
+Scaffold Analysis:
+- Murcko scaffold: c1ccc(Nc2ccccc2)cc1
+- Generic framework: C1CCC(CC2CCCCC2)CC1
+- Scaffold atoms: 13 / 19 (68% of molecule)
+- Side-chain atoms: 6
+- Rings in scaffold: 2
+
+
+
+======================================================================
+MOLECULE: Curcumin (O=C(/C=C/c1ccc(O)c(OC)c1)CC(=O)/C=C/c1ccc(O)c(OC)c1)
+======================================================================
+
+--- get_molecule_profile ---
+Molecular Profile:
+- Molecular weight: 368.39 Da (exact: 368.1260)
+- Heavy atoms: 27, Heteroatoms: 6
+- logP (Wildman-Crippen): 3.3699
+- TPSA: 93.06 Å²
+- H-bond donors: 2, H-bond acceptors: 6
+- Rotatable bonds: 8
+- Fraction sp3 carbons (Fsp3): 0.1429
+- Molar refractivity: 102.02
+- QED (drug-likeness, 0-1): 0.5481
+- Lipinski violations: 0
+- Net formal charge: 0 (cationic centers: 0, anionic centers: 0)
+- Bertz complexity: 822.04
+- Amide bonds: 0
+- Stereocenters: 0 (0 unspecified)
+- Pharmacophore features: 7 hydrophobic, 2 lumped-hydrophobic, 2 aromatic, 0 neg-ionizable, 0 pos-ionizable, 0 Zn-binder
+
+--- analyze_functional_groups ---
+Functional groups (* denotes attachment points):
+- alkene (x2): cc ([*]cc[*]), c.C ([*]c[*])
+- alkyl aryl ether (x2): C (*=C([*])[*]), c ([*]c[*])
+- ketone (x2): cO ([*]c([*])O), OC ([*]OC)
+- phenol (x2): c ([*]c([*])[*]), c ([*]c[*])
+- benzene (x2): C=C/c.cOC ([*]/C=C/c([*])[*]), C(=O)/C=C.c.O ([*]C(=O)/C=C/[*])
+
+--- analyze_ring_systems ---
+Ring System Analysis:
+- Total fused ring systems: 2
+- Largest fused system size (rings): 1
+- Largest aromatic system size (rings): 1
+- Has PAH-like system (>=3 fused aromatic rings): No
+- Largest individual ring size: 6
+- Has macrocycle (>=12 atoms): No (Count: 0)
+- Spiro centers: 0
+- Bridgehead atoms: 0
+- Systems (Largest first):
+  - System has 1 fused ring(s) (6-membered). Aromatic rings: 1. Total atoms: 6. No heteroatoms.
+  - System has 1 fused ring(s) (6-membered). Aromatic rings: 1. Total atoms: 6. No heteroatoms.
+
+Ring Type Counts:
+- Total rings: 2
+- Aromatic: 2, Aliphatic: 0, Saturated: 0
+- Heterocycles: 0 (aromatic: 0, aliphatic: 0, saturated: 0)
+
+Aromaticity:
+- Aromatic atoms: 12 / 27 (0.4444)
+
+Topology Indices:
+- Hall-Kier alpha: -3.5400
+- Kappa1: 19.7804, Kappa2: 9.2388, Kappa3: 5.7434
+- Balaban J: 1.9589
+- IPC: 881033.8147
+
+--- assess_adme_properties ---
+pKa Prediction:
+  Most acidic pKa: 8.29
+  Acidic sites: 4, Basic sites: 0
+Ionization State Classification (at pH 7.4):
+- Number of protonation states enumerated: 3
+- Unique net charges observed: -2, -1, 0
+- Charge class distribution: acid: 2, neutral: 1
+- Has positive states: No
+- Has negative states: Yes
+- Is ambiguous (pKa near target pH): Yes
+- Most representative state:
+  - SMILES: COc1cc(/C=C/C(=O)CC(=O)/C=C/c2ccc(O)c(OC)c2)ccc1O
+  - Net charge: 0
+  - Charge class: neutral
+
+LogD at pH 7.4: 3.32
+Solubility (ESOL heuristic): ESOL logS: -4.0479
+
+--- get_3d_properties ---
+3D Polar Surface Area (ePSA):
+3D conformation based estimation of PSA: 193.64
+3D conformation based estimation of Polar Fraction: 0.29
+
+3D Shape Descriptors:
+- PMI ratios (npr1, npr2): (0.1363, 0.9413) → disc-like
+- Radius of gyration: 5.2665 Å
+- Asphericity: 0.6476
+- Eccentricity: 0.9907
+- Inertial shape factor: 0.000702
+- Spherocity index: 0.1429
+
+--- screen_toxicophores ---
+Structural Alerts (12 categories):
+
+1. Acyl halide / acid anhydride / activated ester
+Highly reactive acylating agents; react with nucleophilic residues non-selectively.
+Matched alerts: beta-keto/anhydride
+
+2. Michael acceptor / electrophilic alkene
+Electrophilic alkene conjugated with electron-withdrawing group; can covalently modify cysteine residues on proteins.
+Matched alerts: Michael_acceptor_1, Michael acceptor, vinyl michael acceptor1, Filter44_michael_acceptor2, alpha beta-unsaturated ketones; center of Michael reactivity
+
+3. Styrene / vinyl / alkene
+Terminal or conjugated alkenes can be metabolically epoxidized to form reactive intermediates.
+Matched alerts: phenylethene
+
+4. Aldehyde / reactive carbonyl
+Reactive carbonyl that forms Schiff bases with lysine residues; includes alpha-dicarbonyls and reactive ketone variants.
+Matched alerts: Ketone
+
+5. Skin sensitization
+Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+Matched alerts: α,β-Unsaturated carbonyls, O-Alkyl catechols precursors, 2 or 4-Hydroxysubstituted alkylphenyl ether, β-Diketones and β-dithiones, Activated alkene (Michael acceptor) (1), Activated alkene (Michael acceptor), Ortho-disubstituted benzenes, Ortho-hydroxysubstituted methyl phenyl ether
+
+6. Genotoxic carcinogenicity / mutagenicity
+DNA-reactive motifs that cause mutations via direct genotoxic mechanisms.
+Matched alerts: α,β-Unsaturated carbonyls
+
+7. Reactive / unstable / toxic groups
+Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+Matched alerts: Vinylketones and similar, Michael acceptors (α,β-unsaturated carbonyls), Ketones, Simple anilines and phenols
+
+8. Acute aquatic toxicity
+Structural features associated with acute toxicity to aquatic organisms, indicating general ecotoxicity and bioactivity.
+Matched alerts: α,β-Unsaturated carbonyl compounds
+
+9. Electrophilic agents
+Electrophilic centers that can react with biological nucleophiles (protein thiols, DNA bases).
+Matched alerts: Polarised alkene-ketones, Hydroquinones, Vinyl benzenes
+
+10. Reactive metabolite formation (idiosyncratic toxicity)
+Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+Matched alerts: Michael acceptors
+
+11. Chelating agents
+Can sequester metal ions essential for enzyme function; may interfere with ion channels.
+Matched alerts: G9,G10, H8*- H12*
+
+12. Non-genotoxic carcinogenicity
+Promotes cancer through non-DNA-reactive mechanisms (receptor activation, epigenetic changes, chronic inflammation).
+Matched alerts: α,β-unsaturated carbonyls
+
+--- get_electronic_properties ---
+Charge & EState Properties:
+- Max Gasteiger charge: 0.1629 (atom 1, C)
+- Min Gasteiger charge: -0.5043 (atom 8, O)
+- Charge polarization: 0.6672
+- Max EState index (nucleophilic proxy): 11.9294
+- Min EState index (electrophilic proxy): -0.3472
+
+Quantum Electronic Properties (GFN2-xTB):
+- HOMO energy: -10.3099 eV
+- LUMO energy: -8.0800 eV
+- HOMO-LUMO gap: 2.2299 eV
+- Dipole moment: 3.4580 Debye
+- Electrophilicity index (ω): 37.9157 eV
+- Total energy: -79.493098 Hartree
+
+--- predict_metabolism_sites ---
+ATTNSOM CYP450 Site-of-Metabolism Prediction
+
+  CYP1A2 (model F1=0.694, top-3 acc=0.896):
+    1. Atom 16 (C), p = 0.639 *SoM*
+    2. Atom 24 (C), p = 0.639 *SoM*
+    3. Atom 15 (C), p = 0.595 *SoM*
+    4. Atom 23 (C), p = 0.595 *SoM*
+    5. Atom 4 (C), p = 0.524 *SoM*
+    → 6 predicted SoM site(s)
+
+  CYP2C9 (model F1=0.702, top-3 acc=0.983):
+    1. Atom 0 (C), p = 0.590 *SoM*
+    2. Atom 21 (C), p = 0.590 *SoM*
+    3. Atom 16 (C), p = 0.560 *SoM*
+    4. Atom 24 (C), p = 0.560 *SoM*
+    5. Atom 15 (C), p = 0.545 *SoM*
+    → 6 predicted SoM site(s)
+
+  CYP3A4 (model F1=0.611, top-3 acc=0.831):
+    1. Atom 4 (C), p = 0.520 *SoM*
+    2. Atom 14 (C), p = 0.520 *SoM*
+    3. Atom 16 (C), p = 0.351
+    4. Atom 24 (C), p = 0.351
+    5. Atom 15 (C), p = 0.283
+    → 2 predicted SoM site(s)
+
+
+Summary: 12 total SoM sites across 3 CYP isoform(s)
+
+CYP450 Sites of Metabolism (FAME3R — Phase 1 & 2):
+
+  1. Atom 6 (C), p = 0.032 — aromatic hydroxylation
+  2. Atom 20 (C), p = 0.032 — aromatic hydroxylation
+  3. Atom 13 (C), p = 0.020 — aliphatic hydroxylation
+  4. Atom 10 (O), p = 0.012 — O-dealkylation (CYP2D6)
+  5. Atom 24 (O), p = 0.012 — O-dealkylation (CYP2D6)
+
+Summary: 0 high-probability sites (p > 0.3)
+
+--- get_scaffold ---
+Scaffold Analysis:
+- Murcko scaffold: O=C(/C=C/c1ccccc1)CC(=O)/C=C/c1ccccc1
+- Generic framework: CC(CC(C)CCC1CCCCC1)CCC1CCCCC1
+- Scaffold atoms: 21 / 27 (78% of molecule)
+- Side-chain atoms: 6
+- Rings in scaffold: 2
+
+
+
+======================================================================
+MOLECULE: Caffeine (Cn1c(=O)c2c(ncn2C)n(C)c1=O)
+======================================================================
+
+--- get_molecule_profile ---
+Molecular Profile:
+- Molecular weight: 194.19 Da (exact: 194.0800)
+- Heavy atoms: 14, Heteroatoms: 6
+- logP (Wildman-Crippen): -1.0300
+- TPSA: 61.82 Å²
+- H-bond donors: 0, H-bond acceptors: 3
+- Rotatable bonds: 0
+- Fraction sp3 carbons (Fsp3): 0.3750
+- Molar refractivity: 51.20
+- QED (drug-likeness, 0-1): 0.5385
+- Lipinski violations: 0
+- Net formal charge: 0 (cationic centers: 0, anionic centers: 0)
+- Bertz complexity: 616.53
+- Amide bonds: 0
+- Stereocenters: 0 (0 unspecified)
+- Pharmacophore features: 0 hydrophobic, 0 lumped-hydrophobic, 2 aromatic, 0 neg-ionizable, 1 pos-ionizable, 0 Zn-binder
+
+--- analyze_functional_groups ---
+Functional groups (* denotes attachment points):
+- uracil: n1c(=O)ccnc1=O (*n1c(=O)c([*])c([*])n([*])c1=O)
+- purine: n1cc2c(ncn2)nc1 (*n1c(=[*])c2c(ncn2[*])n([*])c1=[*])
+
+--- analyze_ring_systems ---
+Ring System Analysis:
+- Total fused ring systems: 1
+- Largest fused system size (rings): 2
+- Largest aromatic system size (rings): 2
+- Has PAH-like system (>=3 fused aromatic rings): No
+- Largest individual ring size: 6
+- Has macrocycle (>=12 atoms): No (Count: 0)
+- Spiro centers: 0
+- Bridgehead atoms: 0
+- Systems (Largest first):
+  - System has 2 fused ring(s) (5, 6-membered). Aromatic rings: 2. Total atoms: 9. Heteroatoms: N.
+
+Ring Type Counts:
+- Total rings: 2
+- Aromatic: 2, Aliphatic: 0, Saturated: 0
+- Heterocycles: 2 (aromatic: 2, aliphatic: 0, saturated: 0)
+
+Aromaticity:
+- Aromatic atoms: 9 / 14 (0.6429)
+
+Topology Indices:
+- Hall-Kier alpha: -1.8500
+- Kappa1: 8.7350, Kappa2: 2.5680, Kappa3: 0.8760
+- Balaban J: 3.2210
+- IPC: 1876.0900
+
+--- assess_adme_properties ---
+pKa Prediction:
+  Most basic pKa: 2.38
+  Acidic sites: 0, Basic sites: 4
+Ionization State Classification (at pH 7.4):
+- Number of protonation states enumerated: 1
+- Unique net charges observed: 0
+- Charge class distribution: neutral: 1
+- Has positive states: No
+- Has negative states: No
+- Is ambiguous (pKa near target pH): No
+- Most representative state:
+  - SMILES: Cn1c(=O)c2c(ncn2C)n(C)c1=O
+  - Net charge: 0
+  - Charge class: neutral
+
+LogD at pH 7.4: -1.03
+Solubility (ML prediction): logS = -0.85 log(mol/L)
+
+--- get_3d_properties ---
+3D Polar Surface Area (ePSA):
+3D conformation based estimation of PSA: 233.54
+
+3D Shape Descriptors:
+- PMI ratios (npr1, npr2): (0.4028, 0.6054) → intermediate
+- Radius of gyration: 2.4647 Å
+- Asphericity: 0.2744
+- Eccentricity: 0.9153
+- Inertial shape factor: 0.001279
+- Spherocity index: 0.0664
+
+--- screen_toxicophores ---
+Structural Alerts (1 categories):
+
+1. Pyridinium / quaternary nitrogen
+Permanent positive charge can cause non-specific binding to proteins and membranes.
+Matched alerts: Filter82_pyridinium
+
+--- get_electronic_properties ---
+Charge & EState Properties:
+- Max Gasteiger charge: 0.3317 (atom 12, C)
+- Min Gasteiger charge: -0.3279 (atom 8, N)
+- Charge polarization: 0.6596
+- Max EState index (nucleophilic proxy): 11.6720
+- Min EState index (electrophilic proxy): -0.3600
+
+Quantum Electronic Properties (GFN2-xTB):
+- HOMO energy: -10.5925 eV
+- LUMO energy: -7.2306 eV
+- HOMO-LUMO gap: 3.3618 eV
+- Dipole moment: 3.9003 Debye
+- Electrophilicity index (ω): 23.6228 eV
+- Total energy: -42.147415 Hartree
+
+--- predict_metabolism_sites ---
+ATTNSOM CYP450 Site-of-Metabolism Prediction
+
+  CYP1A2 (model F1=0.694, top-3 acc=0.896):
+    1. Atom 0 (C), p = 0.037
+    2. Atom 9 (C), p = 0.029
+    3. Atom 1 (N), p = 0.027
+    4. Atom 11 (C), p = 0.025
+    5. Atom 7 (C), p = 0.023
+    → No high-confidence SoM sites
+
+  CYP2E1 (model F1=0.750, top-3 acc=0.953):
+    1. Atom 0 (C), p = 0.040
+    2. Atom 9 (C), p = 0.030
+    3. Atom 1 (N), p = 0.028
+    4. Atom 11 (C), p = 0.026
+    5. Atom 7 (C), p = 0.022
+    → No high-confidence SoM sites
+
+
+Summary: 0 total SoM sites across 2 CYP isoform(s)
+
+CYP450 Sites of Metabolism (FAME3R — Phase 1 & 2):
+
+  1. Atom 0 (C), p = 0.812 — benzylic hydroxylation (CYP3A4, CYP2C9)
+  2. Atom 9 (C), p = 0.760 — benzylic hydroxylation (CYP3A4, CYP2C9)
+  3. Atom 11 (C), p = 0.636 — benzylic hydroxylation (CYP3A4, CYP2C9)
+  4. Atom 12 (C), p = 0.108 — aromatic hydroxylation
+
+Summary: 3 high-probability sites (p > 0.3)
+
+--- get_scaffold ---
+Scaffold Analysis:
+- Murcko scaffold: O=c1[nH]c(=O)c2[nH]cnc2[nH]1
+- Generic framework: CC1CC(C)C2CCCC2C1
+- Scaffold atoms: 11 / 14 (79% of molecule)
+- Side-chain atoms: 3
+- Rings in scaffold: 2
+
+
+
