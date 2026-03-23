@@ -29,9 +29,8 @@ def predict_metabolism_sites(
     """
     Predict sites of CYP450 metabolism and likely metabolite structures.
 
-    Returns:
-      1. CYP SoM predictions (ATTNSOM isoform-specific, or RDKit heuristic fallback)
-      2. Predicted metabolites with pathways and scores (SyGMa Phase 1 + Phase 2)
+    Primary: GLORYx cache (FAME3 SoM + reaction rules, Phase 1 + Phase 2).
+    Fallback: ATTNSOM/RDKit for SoM + SyGMa for metabolites.
 
     Args:
         smiles: SMILES string of the molecule.
@@ -42,7 +41,6 @@ def predict_metabolism_sites(
         Multi-line formatted string with metabolism predictions.
     """
     if isoforms is not None:
-        # Validate isoform names
         invalid = [i for i in isoforms if i not in ALL_ISOFORMS]
         if invalid:
             return (
@@ -50,21 +48,92 @@ def predict_metabolism_sites(
                 f"Valid isoforms: {', '.join(ALL_ISOFORMS)}"
             )
 
+    # Try GLORYx cache first (integrated SoM + metabolite predictions)
+    gloryx_result = _predict_gloryx(smiles)
+    if gloryx_result is not None:
+        return gloryx_result
+
+    # Fallback: ATTNSOM/RDKit SoM + SyGMa metabolites
     sections = []
 
-    # SoM prediction: ATTNSOM -> RDKit fallback
     try:
         sections.append(_predict_attnsom(smiles, isoforms=isoforms))
     except (ImportError, FileNotFoundError):
         sections.append(_predict_rdkit_heuristic(smiles))
 
-    # Metabolite prediction: SyGMa Phase 1 + Phase 2
     try:
         sections.append(_predict_sygma(smiles))
     except Exception:
-        pass  # SyGMa is optional
+        pass
 
     return "\n\n".join(sections)
+
+
+_GLORYX_CACHE = None
+
+
+def _load_gloryx_cache():
+    """Lazy-load the precomputed GLORYx JSONL cache into a dict keyed by canonical SMILES."""
+    global _GLORYX_CACHE
+    if _GLORYX_CACHE is not None:
+        return _GLORYX_CACHE
+    import os, json
+    from rdkit import Chem
+    cache_path = os.path.join(os.path.dirname(__file__), "cache", "gloryx_cache.jsonl")
+    _GLORYX_CACHE = {}
+    if os.path.exists(cache_path):
+        with open(cache_path) as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    smi = entry["smiles"]
+                    # Also index by canonical SMILES for robust lookup
+                    mol = Chem.MolFromSmiles(smi)
+                    if mol:
+                        canon = Chem.MolToSmiles(mol)
+                        _GLORYX_CACHE[canon] = entry["metabolites"]
+                    _GLORYX_CACHE[smi] = entry["metabolites"]
+                except Exception:
+                    pass
+    return _GLORYX_CACHE
+
+
+def _predict_gloryx(smiles: str, max_metabolites: int = 3) -> Optional[str]:
+    """Look up GLORYx cached predictions. Returns formatted string or None if not cached."""
+    from rdkit import Chem
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    canon_smi = Chem.MolToSmiles(mol)
+
+    cache = _load_gloryx_cache()
+    metabolites = cache.get(canon_smi) or cache.get(smiles)
+    if metabolites is None:
+        return None
+
+    # Filter out entries with no actual predictions
+    valid = [m for m in metabolites if m.get("metabolite_smiles")]
+    if not valid:
+        return "Predicted Metabolites (GLORYx — Phase 1 + Phase 2):\n\nNo metabolites predicted."
+
+    # Classify Phase 1 vs Phase 2
+    phase2_keywords = {'glucuronid', 'sulph', 'sulfat', 'GSH', 'acetyl', 'glycin',
+                       'methylat', 'glutathion', 'conjugat'}
+
+    lines = ["Predicted Metabolites (GLORYx — FAME3 SoM + reaction rules, Phase 1 + Phase 2):", ""]
+    for i, m in enumerate(valid[:max_metabolites], 1):
+        met_smi = m["metabolite_smiles"]
+        rxn = m.get("reaction_type", "unknown")
+        score = m.get("priority_score")
+
+        is_p2 = any(kw in rxn.lower() for kw in phase2_keywords)
+        phase_tag = "Phase 2" if is_p2 else "Phase 1"
+        score_str = f", score={score:.3f}" if score is not None else ""
+        lines.append(f"  {i}. {met_smi}")
+        lines.append(f"     Reaction: {rxn} ({phase_tag}{score_str})")
+
+    return "\n".join(lines)
 
 
 _ATTNSOM_CACHE = None
@@ -284,14 +353,12 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "predict_metabolism_sites",
         "description": (
-            "Predict CYP450 sites of metabolism and likely metabolite structures. "
-            "Returns: (1) ATTNSOM isoform-specific SoM predictions showing which atoms "
-            "each CYP isoform is most likely to oxidize; (2) SyGMa metabolite predictions "
-            "with SMILES structures and pathways for both Phase 1 (oxidation, reduction, "
-            "hydrolysis) and Phase 2 (glucuronidation, sulfation, GSH conjugation, "
-            "acetylation, glycination). "
-            "Available CYP isoforms: 1A2, 2A6, 2B6, 2C8, 2C9, 2C19, 2D6, 2E1, 3A4. "
-            "Use for: (1) CYP inhibition/substrate tasks — SoM + metabolite reasoning; "
+            "Predict CYP450 metabolism: returns top 3 ranked metabolites with SMILES, "
+            "reaction types, and priority scores for Phase 1 (oxidation, reduction, "
+            "hydrolysis) and Phase 2 (glucuronidation, sulfation, GSH conjugation). "
+            "Uses GLORYx (FAME3 SoM + reaction rules) when cached, otherwise "
+            "ATTNSOM isoform-specific SoM + SyGMa metabolite prediction as fallback. "
+            "Use for: (1) CYP inhibition/substrate tasks — metabolite reasoning; "
             "(2) DILI — reactive metabolites vs. detoxifying conjugation; "
             "(3) AMES — metabolic activation of pro-mutagens."
         ),
