@@ -21,7 +21,7 @@ import json as _json
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 _EMBEDDINGS_DIR = _CACHE_DIR
-_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "tdc", "raw")
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "tdc", "raw")
 
 
 # ------------------------------------------------------------------
@@ -59,7 +59,7 @@ def _load_split_smiles(task: str) -> Optional[dict]:
     Returns dict with 'train' and 'val' sets, or None if files missing.
     Tries both data/tdc/raw and data/TDC paths.
     """
-    for base in [_DATA_DIR, os.path.join(os.path.dirname(__file__), "..", "..", "data", "TDC")]:
+    for base in [_DATA_DIR, os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "TDC")]:
         train_path = os.path.join(base, task, "train.csv")
         val_path = os.path.join(base, task, "val.csv")
         if os.path.exists(train_path) and os.path.exists(val_path):
@@ -412,9 +412,10 @@ TOOL_SCHEMA: Dict[str, Any] = {
         "name": "find_similar_molecules",
         "description": (
             "Find the most similar molecules from the training set using task-aware "
-            "embeddings. Returns K nearest neighbors with their labels, cached molecular "
-            "properties, and shared scaffolds (MCS), plus the closest molecule with the "
-            "opposite label for contrastive SAR reasoning. Use this for structure-activity analysis."
+            "embeddings. Returns K nearest neighbors with their labels and functional "
+            "groups, plus the closest molecule with the opposite label for contrastive "
+            "SAR reasoning. Includes KNN accuracy metrics (global and local neighborhood). "
+            "Use this for structure-activity analysis."
         ),
         "parameters": {
             "type": "object",

@@ -81,7 +81,7 @@ def get_molecule_profile(smiles: str) -> str:
 
     lines = [
         "Molecular Profile:",
-        f"- Molecular weight: {mw:.2f} Da (exact: {exact_mw:.4f})",
+        f"- Molecular weight: {mw:.2f} Da",
         f"- Heavy atoms: {heavy_atoms}, Heteroatoms: {heteroatoms}",
         f"- logP (Wildman-Crippen): {logp:.4f}",
         f"- TPSA: {tpsa:.2f} Å²",
@@ -94,7 +94,7 @@ def get_molecule_profile(smiles: str) -> str:
         f"- Net formal charge: {formal_charge} (cationic centers: {n_pos}, anionic centers: {n_neg})",
         f"- Bertz complexity: {bertz:.2f}",
         f"- Amide bonds: {amide_bonds}",
-        f"- Stereocenters: {stereocenters} ({unspecified_stereo} unspecified)",
+        f"- Stereocenters: {stereocenters}",
         f"- Pharmacophore features: "
         f"{pharm_counts.get('Hydrophobe', 0)} hydrophobic, "
         f"{pharm_counts.get('LumpedHydrophobe', 0)} lumped-hydrophobic, "
@@ -122,7 +122,7 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "get_molecule_profile",
         "description": (
-            "Get a comprehensive molecular profile including identity (MW, formula), "
+            "Get a comprehensive molecular profile including identity (MW), "
             "drug-likeness (QED, Lipinski violations), key physicochemical properties "
             "(logP, TPSA, HBD, HBA, rotatable bonds, Fsp3, molar refractivity), "
             "charge information, complexity metrics (Bertz CT, stereocenters), and "

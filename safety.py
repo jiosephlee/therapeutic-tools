@@ -819,7 +819,7 @@ def screen_toxicophores(smiles: str) -> str:
             lines.append(data["note"])
             shown = alert_names[:8]
             trail = f", ... and {len(alert_names) - 8} more" if len(alert_names) > 8 else ""
-            lines.append(f"Matched alerts: {', '.join(shown)}{trail}")
+            lines.append(f"Matched alerts ({len(alert_names)}): {', '.join(shown)}{trail}")
         sections.append("\n".join(lines))
 
     return "\n".join(sections)

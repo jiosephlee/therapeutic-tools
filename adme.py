@@ -52,7 +52,7 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
 
     # Solubility — use ML prediction from cache if available, else ESOL heuristic
     if cached and "minimol_solubility_log_mol_L" in cached:
-        sections.append(f"Solubility (ML prediction): logS = {cached['minimol_solubility_log_mol_L']:.2f} log(mol/L)")
+        sections.append(f"Solubility: logS = {cached['minimol_solubility_log_mol_L']:.2f} log(mol/L)")
     else:
         try:
             esol_result = get_esol(smiles)
