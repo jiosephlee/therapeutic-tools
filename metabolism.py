@@ -1,72 +1,44 @@
 """
-Expansion Tool: Metabolic Site Prediction & Metabolite Prediction.
+Metabolite Prediction Tool.
 
-Two complementary predictions:
-  1. Sites of Metabolism (SoM): ATTNSOM (isoform-specific CYP Phase 1) or
-     RDKit SMARTS heuristic fallback.
-  2. Metabolite Structures: SyGMa (rule-based Phase 1 + Phase 2 metabolite
-     prediction with scored pathways).
+Predicts likely metabolite structures with ranked priority scores.
+Primary: GLORYx cache (FAME3 SoM + reaction rules, Phase 1 + Phase 2).
+Fallback: SyGMa (rule-based Phase 1 + Phase 2 metabolite prediction).
 
 Why this tool matters:
-  - CYP inhibition tasks (e.g. CYP2C19): SoM shows WHERE a CYP isoform
-    attacks -> model reasons about active-site binding vs. being metabolized.
-  - DILI: SoM -> identify reactive metabolite formation sites (epoxides,
-    quinone methides, etc.) that trigger GSH depletion -> hepatotoxicity.
-    SyGMa shows Phase 2 conjugation (glucuronidation, GSH) that detoxifies.
-  - AMES: Metabolic activation can convert pro-mutagens into DNA-reactive species.
-    SyGMa predicts the actual metabolite structures formed.
+  - CYP inhibition/substrate tasks: metabolite reasoning about what the
+    molecule is converted into by CYP enzymes.
+  - DILI: reactive metabolites (epoxides, quinone methides) vs. detoxifying
+    Phase 2 conjugation (glucuronidation, GSH).
+  - AMES: metabolic activation can convert pro-mutagens into DNA-reactive species.
 """
 
-from typing import Dict, Any, List, Tuple, Optional
-
-ALL_ISOFORMS = ["1A2", "2A6", "2B6", "2C8", "2C9", "2C19", "2D6", "2E1", "3A4"]
+from typing import Dict, Any, List, Optional
 
 
-def predict_metabolism_sites(
-    smiles: str,
-    isoforms: Optional[List[str]] = None,
-) -> str:
+def predict_metabolism_sites(smiles: str) -> str:
     """
-    Predict sites of CYP450 metabolism and likely metabolite structures.
+    Predict likely metabolite structures.
 
     Primary: GLORYx cache (FAME3 SoM + reaction rules, Phase 1 + Phase 2).
-    Fallback: ATTNSOM/RDKit for SoM + SyGMa for metabolites.
+    Fallback: SyGMa (rule-based Phase 1 + Phase 2 metabolite prediction).
 
     Args:
         smiles: SMILES string of the molecule.
-        isoforms: List of CYP isoforms to predict (e.g. ["2C9", "3A4"]).
-                  Defaults to all 9 isoforms.
 
     Returns:
-        Multi-line formatted string with metabolism predictions.
+        Multi-line formatted string with top 3 predicted metabolites.
     """
-    if isoforms is not None:
-        invalid = [i for i in isoforms if i not in ALL_ISOFORMS]
-        if invalid:
-            return (
-                f"Error: Unknown isoform(s): {', '.join(invalid)}. "
-                f"Valid isoforms: {', '.join(ALL_ISOFORMS)}"
-            )
-
     # Try GLORYx cache first (integrated SoM + metabolite predictions)
     gloryx_result = _predict_gloryx(smiles)
     if gloryx_result is not None:
         return gloryx_result
 
-    # Fallback: ATTNSOM/RDKit SoM + SyGMa metabolites
-    sections = []
-
+    # Fallback: SyGMa metabolite prediction
     try:
-        sections.append(_predict_attnsom(smiles, isoforms=isoforms))
-    except (ImportError, FileNotFoundError):
-        sections.append(_predict_rdkit_heuristic(smiles))
-
-    try:
-        sections.append(_predict_sygma(smiles))
-    except Exception:
-        pass
-
-    return "\n\n".join(sections)
+        return _predict_sygma(smiles)
+    except Exception as e:
+        return f"Error: Could not predict metabolites for '{smiles}': {e}"
 
 
 _GLORYX_CACHE = None
@@ -241,7 +213,7 @@ def _filter_attnsom_output(text: str, isoforms: List[str]) -> str:
     return "\n".join(filtered)
 
 
-def _predict_sygma(smiles: str, max_metabolites: int = 10) -> str:
+def _predict_sygma(smiles: str, max_metabolites: int = 3) -> str:
     """Predict metabolite structures using SyGMa (Phase 1 + Phase 2 rules).
 
     SyGMa applies reaction SMARTS rules derived from literature to enumerate
@@ -357,26 +329,19 @@ TOOL_SCHEMA: Dict[str, Any] = {
             "reaction types, and priority scores for Phase 1 (oxidation, reduction, "
             "hydrolysis) and Phase 2 (glucuronidation, sulfation, GSH conjugation). "
             "Uses GLORYx (FAME3 SoM + reaction rules) when cached, otherwise "
-            "ATTNSOM isoform-specific SoM + SyGMa metabolite prediction as fallback. "
-            "Use for: (1) CYP inhibition/substrate tasks — metabolite reasoning; "
-            "(2) DILI — reactive metabolites vs. detoxifying conjugation; "
-            "(3) AMES — metabolic activation of pro-mutagens."
+            "SyGMa rule-based metabolite prediction as fallback. "
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "smiles": {"type": "string", "description": "SMILES string of the molecule."},
-                "isoforms": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": (
-                        "CYP isoforms to predict (e.g. ['2C9', '3A4']). "
-                        "Defaults to all 9 isoforms if omitted."
-                    ),
-                },
             },
-            "required": ["smiles", "isoforms"],
+            "required": ["smiles"],
             "additionalProperties": False,
         }
     }
 }
+
+            # "Use for: (1) CYP inhibition/substrate tasks — metabolite reasoning; "
+            # "(2) DILI — reactive metabolites vs. detoxifying conjugation; "
+            # "(3) AMES — metabolic activation of pro-mutagens."

@@ -122,7 +122,7 @@ _TOXICOPHORE_CATEGORIES: List[Tuple[str, str, List[str]]] = [
         "(potential carcinogens).",
         ["azo_a(", "azo_aryl", "azo_amino", "azo_filter", "azo group",
          "azo_group", "azobenzene", "azocyanamide", "filter5_azo",
-         "p-aminoaryl_diazo", "dye "],
+         "p-aminoaryl_diazo"],
     ),
     (
         "Aniline / aromatic amine",
@@ -744,10 +744,17 @@ def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
 
     grouped: OrderedDict[str, list] = OrderedDict()
     for alert_id, name, prop, pat in alerts:
-        if mol.HasSubstructMatch(pat):
+        match_atoms = mol.GetSubstructMatch(pat)
+        if match_atoms:
+            frag_smi = ""
+            try:
+                frag_smi = Chem.MolFragmentToSmiles(mol, atomsToUse=match_atoms)
+            except Exception:
+                pass
+            display = f"{name} [{frag_smi}]" if frag_smi else name
             if prop not in grouped:
                 grouped[prop] = []
-            grouped[prop].append(name)
+            grouped[prop].append(display)
 
     result = {}
     for prop, alert_names in grouped.items():
@@ -842,7 +849,7 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
     params.AddCatalog(FilterCatalogParams.FilterCatalogs.ALL)
     fc = FilterCatalog(params)
 
-    # Collect all raw alerts (deduplicated)
+    # Collect all raw alerts (deduplicated), with matched fragment SMILES
     seen = set()
     raw_alerts = []
     for entry in fc.GetMatches(mol):
@@ -850,7 +857,19 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
         desc_norm = desc.lower().replace("_", " ")
         if desc_norm not in seen:
             seen.add(desc_norm)
-            raw_alerts.append(desc)
+            # Extract the matched substructure as a readable SMILES fragment
+            frag_smi = ""
+            fms = entry.GetFilterMatches(mol)
+            if fms:
+                pat = fms[0].filterMatch.GetPattern()
+                if pat:
+                    match_atoms = mol.GetSubstructMatch(pat)
+                    if match_atoms:
+                        try:
+                            frag_smi = Chem.MolFragmentToSmiles(mol, atomsToUse=match_atoms)
+                        except Exception:
+                            pass
+            raw_alerts.append((desc, frag_smi))
 
     if not raw_alerts:
         return {}
@@ -859,8 +878,9 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
     grouped: OrderedDict[str, Dict] = OrderedDict()
     uncategorized = []
 
-    for alert in raw_alerts:
-        cat = _classify_alert(alert)
+    for alert_name, frag_smi in raw_alerts:
+        display = f"{alert_name} [{frag_smi}]" if frag_smi else alert_name
+        cat = _classify_alert(alert_name)
         if cat:
             if cat not in grouped:
                 note = ""
@@ -869,9 +889,9 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
                         note = n
                         break
                 grouped[cat] = {"note": note, "alerts": []}
-            grouped[cat]["alerts"].append(alert)
+            grouped[cat]["alerts"].append(display)
         else:
-            uncategorized.append(alert)
+            uncategorized.append(display)
 
     if uncategorized:
         grouped["Other structural flags"] = {

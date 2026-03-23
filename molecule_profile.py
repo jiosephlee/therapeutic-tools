@@ -33,7 +33,7 @@ def get_molecule_profile(smiles: str) -> str:
     import os
     from collections import Counter
     from rdkit import Chem, RDConfig
-    from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, Crippen, QED as QEDModule, ChemicalFeatures
+    from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, Crippen, QED as QEDModule, ChemicalFeatures, GraphDescriptors
 
     mol = _mol_from_smiles(smiles)
 
@@ -63,6 +63,12 @@ def get_molecule_profile(smiles: str) -> str:
 
     # Complexity
     bertz = _c("BertzCT", lambda: float(Descriptors.BertzCT(mol)))
+    hall_kier = _c("HallKierAlpha", lambda: float(Descriptors.HallKierAlpha(mol)))
+    kappa1 = _c("Kappa1", lambda: float(GraphDescriptors.Kappa1(mol)))
+    kappa2 = _c("Kappa2", lambda: float(GraphDescriptors.Kappa2(mol)))
+    kappa3 = _c("Kappa3", lambda: float(GraphDescriptors.Kappa3(mol)))
+    balaban_j = _c("BalabanJ", lambda: float(GraphDescriptors.BalabanJ(mol)))
+    ipc = _c("Ipc", lambda: float(Descriptors.Ipc(mol)))
     amide_bonds = int(_c("NumAmideBonds", lambda: float(Lipinski.NumAmideBonds(mol))))
     stereocenters = int(_c("NumAtomStereoCenters", lambda: float(rdMolDescriptors.CalcNumAtomStereoCenters(mol))))
     unspecified_stereo = int(_c("NumUnspecifiedAtomStereoCenters", lambda: float(rdMolDescriptors.CalcNumUnspecifiedAtomStereoCenters(mol))))
@@ -93,6 +99,7 @@ def get_molecule_profile(smiles: str) -> str:
         f"- Lipinski violations: {lipinski_violations}" + (f" ({', '.join(lipinski_details)})" if lipinski_details else ""),
         f"- Net formal charge: {formal_charge} (cationic centers: {n_pos}, anionic centers: {n_neg})",
         f"- Bertz complexity: {bertz:.2f}",
+        f"- Topology: HallKierAlpha={hall_kier:.4f}, Kappa1={kappa1:.4f}, Kappa2={kappa2:.4f}, Kappa3={kappa3:.4f}, BalabanJ={balaban_j:.4f}, IPC={ipc:.4f}",
         f"- Amide bonds: {amide_bonds}",
         f"- Stereocenters: {stereocenters}",
         f"- Pharmacophore features: "
@@ -125,7 +132,7 @@ TOOL_SCHEMA: Dict[str, Any] = {
             "Get a comprehensive molecular profile including identity (MW), "
             "drug-likeness (QED, Lipinski violations), key physicochemical properties "
             "(logP, TPSA, HBD, HBA, rotatable bonds, Fsp3, molar refractivity), "
-            "charge information, complexity metrics (Bertz CT, stereocenters), and "
+            "charge information, complexity metrics (Bertz CT, stereocenters), topology indices (Hall-Kier, Kappa, Balaban J, IPC), and "
             "pharmacophore feature counts (hydrophobic, aromatic, ionizable, Zn-binder)."
         ),
         "parameters": {

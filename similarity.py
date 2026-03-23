@@ -224,7 +224,7 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
                 v_emb = train_embeddings[vi]
                 v_norm = v_emb / (np.linalg.norm(v_emb) + 1e-8)
                 v_sims = train_only_normed @ v_norm
-                top_voters = np.argsort(v_sims)[::-1][:neighborhood_k]
+                top_voters = np.argsort(v_sims)[::-1][:display_k]
                 voter_labels = train_only_labels[top_voters]
                 val_true.append(int(train_labels[vi]))
                 val_pred.append(int(np.round(voter_labels.mean())))
@@ -382,7 +382,7 @@ def _format_results(
             sections.append(f"- global -> accuracy={val_acc:.3f}, F1={val_f1:.3f}")
         if has_dev:
             sections.append(
-                f"- local ({dev_neighborhood['k']} nearest val neighbors) -> "
+                f"- local ({dev_neighborhood['k']} nearest neighbors) -> "
                 f"accuracy={dev_neighborhood['acc']:.3f}, F1={dev_neighborhood['f1']:.3f}"
             )
         sections.append("")
