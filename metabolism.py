@@ -16,7 +16,7 @@ Why this tool matters:
 from typing import Dict, Any, List, Optional
 
 
-def predict_metabolism_sites(smiles: str) -> str:
+def predict_metabolites(smiles: str) -> str:
     """
     Predict likely metabolite structures.
 
@@ -323,7 +323,7 @@ def _predict_rdkit_heuristic(smiles: str) -> str:
 TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
-        "name": "predict_metabolism_sites",
+        "name": "predict_metabolites",
         "description": (
             "Predict CYP450 metabolism: returns top 3 ranked metabolites with SMILES, "
             "reaction types, and priority scores for Phase 1 (oxidation, reduction, "

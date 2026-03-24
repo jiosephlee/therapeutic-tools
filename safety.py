@@ -767,7 +767,7 @@ def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
 
 # ── Main entry point ──────────────────────────────────────────────────
 
-def screen_toxicophores(smiles: str) -> str:
+def screen_structural_alerts(smiles: str) -> str:
     """
     Screen a molecule for toxicophores (structural alerts grouped by
     mechanism of toxicity) and pharmacophore features.
@@ -903,13 +903,14 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
 
 
 # Keep backward compatibility
-screen_safety = screen_toxicophores
+screen_toxicophores = screen_structural_alerts  # backward compatibility
+screen_safety = screen_structural_alerts
 
 
 TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
-        "name": "screen_toxicophores",
+        "name": "screen_structural_alerts",
         "description": (
             "Screen a molecule for toxicophores — structural motifs associated with "
             "specific toxicity mechanisms. Groups alerts into categories like 'Michael "

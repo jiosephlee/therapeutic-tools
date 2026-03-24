@@ -144,7 +144,7 @@ Quantum Electronic Properties (GFN2-xTB):
 - Electrophilicity index (ω): 26.3993 eV
 - Total energy: -39.622955 Hartree
 
-=== predict_metabolism_sites ===
+=== predict_metabolites ===
 Predicted Metabolites (GLORYx — FAME3 SoM + reaction rules, Phase 1 + Phase 2):
 
   1. CC(=O)Oc1ccccc1C(=O)OC1OC(C(=O)O)C(O)C(O)C1O

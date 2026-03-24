@@ -1,8 +1,7 @@
 """
 Tool 5: 3D Properties — conformational ensemble analysis.
 
-Includes 3D exposed polar surface area (ePSA), SASA breakdown,
-and 3D shape descriptors (PMI, radius of gyration, sphericity).
+Includes 3D exposed polar surface area (ePSA) and 3D shape (PMI ratios).
 
 Computationally expensive (~seconds) — call only when 3D info is needed.
 """
@@ -16,8 +15,7 @@ def get_3d_properties(smiles: str) -> str:
 
     Includes:
     - 3D exposed polar surface area (ePSA) with Boltzmann weighting
-    - 3D shape descriptors: PMI ratios (rod/disc/sphere), radius of gyration,
-      sphericity, plane-of-best-fit deviation
+    - 3D shape: PMI ratios (rod/disc/sphere classification)
 
     This is computationally expensive (~seconds). Call only when 3D surface
     or shape information is specifically needed beyond 2D TPSA.
@@ -65,14 +63,13 @@ def _compute_shape_descriptors(smiles: str) -> str:
     """
     Compute 3D shape descriptors from the lowest-energy conformer.
 
-    Uses RDKit's Descriptors3D module for PMI (Principal Moments of Inertia),
-    radius of gyration, sphericity, and related shape metrics.
+    Uses RDKit's Descriptors3D module for PMI (Principal Moments of Inertia)
+    shape classification.
 
     These are cheap to compute once a conformer exists.
     """
     from rdkit import Chem
-    from rdkit.Chem import AllChem, Descriptors3D, rdMolDescriptors
-    import math
+    from rdkit.Chem import AllChem, Descriptors3D
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
@@ -129,39 +126,9 @@ def _compute_shape_descriptors(smiles: str) -> str:
         pmi1 = pmi2 = pmi3 = npr1 = npr2 = float("nan")
         shape_class = "unknown"
 
-    # Radius of gyration
-    try:
-        rog = Descriptors3D.RadiusOfGyration(mol, confId=cid)
-    except Exception:
-        rog = float("nan")
-
-    # Asphericity and eccentricity
-    try:
-        asphericity = Descriptors3D.Asphericity(mol, confId=cid)
-        eccentricity = Descriptors3D.Eccentricity(mol, confId=cid)
-    except Exception:
-        asphericity = eccentricity = float("nan")
-
-    # Inertial shape factor
-    try:
-        isf = Descriptors3D.InertialShapeFactor(mol, confId=cid)
-    except Exception:
-        isf = float("nan")
-
-    # Spherocity index
-    try:
-        spherocity = Descriptors3D.SpherocityIndex(mol, confId=cid)
-    except Exception:
-        spherocity = float("nan")
-
     lines = [
         "3D Shape Descriptors:",
         f"- PMI ratios (npr1, npr2): ({npr1:.4f}, {npr2:.4f}) → {shape_class}",
-        f"- Radius of gyration: {rog:.4f} Å",
-        f"- Asphericity: {asphericity:.4f}",
-        f"- Eccentricity: {eccentricity:.4f}",
-        f"- Inertial shape factor: {isf:.6f}",
-        f"- Spherocity index: {spherocity:.4f}",
     ]
     return "\n".join(lines)
 
@@ -171,10 +138,9 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "get_3d_properties",
         "description": (
-            "Compute 3D conformational properties from a multi-conformer ensemble. "
-            "Returns Boltzmann-weighted exposed polar surface area (ePSA), polar fraction, "
-            "and 3D shape descriptors (PMI ratios for rod/disc/sphere classification, "
-            "radius of gyration, asphericity, eccentricity, spherocity). "
+            "Compute 3D conformational properties from a conformer ensemble. "
+            "Returns exposed polar surface area (ePSA) and 3D shape (PMI ratios for "
+            "rod/disc/sphere classification). "
             "Computationally expensive (~seconds). Use only when 3D surface/shape information "
             "is specifically needed beyond 2D TPSA."
         ),

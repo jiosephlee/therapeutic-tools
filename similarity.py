@@ -347,6 +347,39 @@ def _label_str(label) -> str:
     return str(label)
 
 
+def _get_key_properties(smiles: str) -> Optional[str]:
+    """Return MW, logP, TPSA for a neighbor molecule. Compute if not cached."""
+    from . import metadata_cache
+    cached = metadata_cache.lookup_row(smiles)
+
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+
+        if cached and "MolWt" in cached:
+            mw = cached["MolWt"]
+        else:
+            mw = Descriptors.MolWt(mol)
+
+        if cached and "MolLogP" in cached:
+            logp = cached["MolLogP"]
+        else:
+            logp = Crippen.MolLogP(mol)
+
+        if cached and "TPSA" in cached:
+            tpsa = cached["TPSA"]
+        else:
+            tpsa = rdMolDescriptors.CalcTPSA(mol)
+
+        return f"MW={mw:.1f}, logP={logp:.2f}, TPSA={tpsa:.1f}"
+    except Exception:
+        return None
+
+
 def _format_neighbor(idx: int, neighbor: dict) -> str:
     """Format a single neighbor for output."""
     label_str = _label_str(neighbor['label'])
@@ -354,6 +387,9 @@ def _format_neighbor(idx: int, neighbor: dict) -> str:
         f"{idx}. {neighbor['smiles']} "
         f"(similarity: {neighbor['similarity']:.4f}, label: {label_str})"
     )
+    props = _get_key_properties(neighbor['smiles'])
+    if props:
+        line += f"\n   Basic properties: {props}"
     fg = _get_fg_summary(neighbor['smiles'])
     if fg:
         line += f"\n   Functional groups: {fg}"
@@ -412,10 +448,10 @@ TOOL_SCHEMA: Dict[str, Any] = {
         "name": "find_similar_molecules",
         "description": (
             "Find the most similar molecules from the training set using task-aware "
-            "embeddings. Returns K nearest neighbors with their labels and functional "
-            "groups, plus the closest molecule with the opposite label for contrastive "
-            "SAR reasoning. Includes KNN accuracy metrics (global and local neighborhood). "
-            "Use this for structure-activity analysis."
+            "embeddings. Returns K nearest neighbors with their labels, key properties "
+            "(MW, logP, TPSA), and functional groups, plus the closest molecule with the "
+            "opposite label for contrastive SAR reasoning. Includes KNN accuracy metrics "
+            "(global and local neighborhood). Use this for structure-activity analysis."
         ),
         "parameters": {
             "type": "object",

@@ -49,4 +49,11 @@ def lookup_row(smiles: str) -> Optional[Dict[str, float]]:
     row = meta.loc[smiles]
     if isinstance(row, pd.DataFrame):
         row = row.iloc[0]
-    return {k: float(v) for k, v in row.items() if pd.notna(v)}
+    result = {}
+    for k, v in row.items():
+        if pd.notna(v):
+            try:
+                result[k] = float(v)
+            except (ValueError, TypeError):
+                result[k] = v  # keep as-is (e.g. JSON strings)
+    return result
