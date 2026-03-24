@@ -21,7 +21,7 @@ import json as _json
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 _EMBEDDINGS_DIR = _CACHE_DIR
-_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "tdc", "raw")
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "tdc", "raw")
 
 
 # ------------------------------------------------------------------
@@ -59,7 +59,7 @@ def _load_split_smiles(task: str) -> Optional[dict]:
     Returns dict with 'train' and 'val' sets, or None if files missing.
     Tries both data/tdc/raw and data/TDC paths.
     """
-    for base in [_DATA_DIR, os.path.join(os.path.dirname(__file__), "..", "..", "data", "TDC")]:
+    for base in [_DATA_DIR, os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "TDC")]:
         train_path = os.path.join(base, task, "train.csv")
         val_path = os.path.join(base, task, "val.csv")
         if os.path.exists(train_path) and os.path.exists(val_path):
@@ -224,7 +224,7 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
                 v_emb = train_embeddings[vi]
                 v_norm = v_emb / (np.linalg.norm(v_emb) + 1e-8)
                 v_sims = train_only_normed @ v_norm
-                top_voters = np.argsort(v_sims)[::-1][:neighborhood_k]
+                top_voters = np.argsort(v_sims)[::-1][:display_k]
                 voter_labels = train_only_labels[top_voters]
                 val_true.append(int(train_labels[vi]))
                 val_pred.append(int(np.round(voter_labels.mean())))
@@ -382,7 +382,7 @@ def _format_results(
             sections.append(f"- global -> accuracy={val_acc:.3f}, F1={val_f1:.3f}")
         if has_dev:
             sections.append(
-                f"- local ({dev_neighborhood['k']} nearest val neighbors) -> "
+                f"- local ({dev_neighborhood['k']} nearest neighbors) -> "
                 f"accuracy={dev_neighborhood['acc']:.3f}, F1={dev_neighborhood['f1']:.3f}"
             )
         sections.append("")
@@ -412,9 +412,10 @@ TOOL_SCHEMA: Dict[str, Any] = {
         "name": "find_similar_molecules",
         "description": (
             "Find the most similar molecules from the training set using task-aware "
-            "embeddings. Returns K nearest neighbors with their labels, cached molecular "
-            "properties, and shared scaffolds (MCS), plus the closest molecule with the "
-            "opposite label for contrastive SAR reasoning. Use this for structure-activity analysis."
+            "embeddings. Returns K nearest neighbors with their labels and functional "
+            "groups, plus the closest molecule with the opposite label for contrastive "
+            "SAR reasoning. Includes KNN accuracy metrics (global and local neighborhood). "
+            "Use this for structure-activity analysis."
         ),
         "parameters": {
             "type": "object",
