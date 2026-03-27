@@ -28,8 +28,12 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
     sections = []
 
     # pKa prediction — use cache if available, else compute
+    # NOTE (2026-03-26): pKa is predicted by MolGpKa (graph neural network trained on
+    # experimental pKa data). Previously the output label was just "pKa Prediction:".
+    # Changed to include provenance so models can distinguish it from the Dimorphite-DL
+    # ionization classification below, which uses a different method and can disagree.
     pka_data = _get_pka_data(smiles, cached)
-    lines = ["pKa Prediction:"]
+    lines = ["pKa Prediction (via ML, MolGpKa):"]
 
     acid_sites = pka_data.get("acid_sites")  # {atom_map: pKa} or None
     base_sites = pka_data.get("base_sites")
@@ -54,6 +58,11 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
     sections.append("\n".join(lines))
 
     # Ionization classification (compact format)
+    # NOTE (2026-03-26): Ionization is classified by Dimorphite-DL, which matches atoms
+    # against a fixed table of ~140 SMARTS patterns with hardcoded pKa ranges. This is
+    # independent of the MolGpKa pKa prediction above and the two can disagree —
+    # especially for unusual scaffolds where Dimorphite-DL lacks a matching pattern.
+    # Previously the output label was just "Ionization at pH {ph}: ...".
     try:
         ionization_result = _compact_ionization(smiles, ph=ph)
         sections.append(ionization_result)
@@ -126,7 +135,7 @@ def _compact_ionization(smiles: str, ph: float = 7.4) -> str:
     is_ambiguous = len(net_charges) > 1
 
     lines = [
-        f"Ionization at pH {ph}: {representative['charge_class']}, charge {representative['net_charge']}",
+        f"Ionization at pH {ph} (via SMARTS table, Dimorphite-DL): {representative['charge_class']}, charge {representative['net_charge']}",
         f"- Dominant form: {representative['smiles']}",
         f"- Ambiguous (pKa near pH): {'Yes' if is_ambiguous else 'No'}",
     ]
@@ -256,20 +265,14 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "assess_adme_properties",
-        "description": (
-            "Assess ADME properties: pKa prediction (acidic/basic sites), "
-            "ionization state classification at target pH, logD estimation, "
-            "and aqueous solubility. "
-            "These are causally linked: pKa → ionization → logD → permeability."
-        ),
+        "description": "Predict pKa, ionization state, logD, and solubility (pKa → ionization → logD → permeability).",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."},
-                "ph": {"type": "number", "description": "Target pH for ionization/logD estimation (default: 7.4)."}
+                "smiles": {"type": "string"},
+                "ph": {"type": "number", "description": "Target pH (default: 7.4)."}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

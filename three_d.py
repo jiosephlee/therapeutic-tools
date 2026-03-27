@@ -137,20 +137,13 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "get_3d_properties",
-        "description": (
-            "Compute 3D conformational properties from a conformer ensemble. "
-            "Returns exposed polar surface area (ePSA) and 3D shape (PMI ratios for "
-            "rod/disc/sphere classification). "
-            "Computationally expensive (~seconds). Use only when 3D surface/shape information "
-            "is specifically needed beyond 2D TPSA."
-        ),
+        "description": "Compute 3D conformer properties: exposed polar surface area (ePSA) and shape (PMI rod/disc/sphere).",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

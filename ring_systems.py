@@ -198,18 +198,15 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "analyze_ring_systems",
         "description": (
-            "Analyze ring topology and aromaticity. "
-            "Returns per-system descriptions with ring sizes and heteroatom content, "
-            "ring type counts (aromatic/aliphatic/saturated/heterocyclic), "
-            "aromaticity metrics, and flags for PAH, macrocycle, spiro, and bridgehead features."
+            "Analyze ring topology: sizes, heteroatom content, aromaticity, "
+            "and flags for PAH, macrocycle, spiro, and bridgehead features."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

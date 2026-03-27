@@ -163,20 +163,15 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "get_molecule_profile",
         "description": (
-            "Get a comprehensive molecular profile including identity (MW), "
-            "drug-likeness (QED, Lipinski violations), key physicochemical properties "
-            "(logP, TPSA, HBD, HBA, rotatable bonds, Fsp3, molar refractivity), "
-            "complexity metrics (Bertz CT, stereocenters), topology indices (Hall-Kier, Kappa, Balaban J, IPC), "
-            "pharmacophore feature counts (hydrophobic, aromatic, ionizable), and "
-            "electronic properties (Gasteiger charges, EState indices, HOMO/LUMO gap)."
+            "Compute physicochemical profile: MW, logP, TPSA, HBD/HBA, rotatable bonds, Fsp3, QED, "
+            "Lipinski violations, complexity, topology indices, pharmacophore counts, and electronic properties."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

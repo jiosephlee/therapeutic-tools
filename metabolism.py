@@ -324,20 +324,13 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "predict_metabolites",
-        "description": (
-            "Predict CYP450 metabolism: returns top 3 ranked metabolites with SMILES, "
-            "reaction types, and priority scores for Phase 1 (oxidation, reduction, "
-            "hydrolysis) and Phase 2 (glucuronidation, sulfation, GSH conjugation). "
-            "Uses GLORYx (FAME3 SoM + reaction rules) when cached, otherwise "
-            "SyGMa rule-based metabolite prediction as fallback. "
-        ),
+        "description": "Predict top CYP450 metabolites (Phase 1 and Phase 2) with reaction types and priority scores.",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."},
+                "smiles": {"type": "string"},
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

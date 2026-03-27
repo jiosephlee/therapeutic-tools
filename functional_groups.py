@@ -29,18 +29,13 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "analyze_functional_groups",
-        "description": (
-            "Analyze functional groups in a molecule using AccFG. Returns named functional "
-            "groups with fragment SMILES, attachment points, and atom IDs for structural "
-            "reasoning. Use this to understand what chemical motifs are present."
-        ),
+        "description": "Identify functional groups and chemical motifs with fragment SMILES and attachment points.",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

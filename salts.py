@@ -28,19 +28,13 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "remove_salts",
-        "description": (
-            "Remove salts and counterions from a SMILES string, keeping only the largest "
-            "organic fragment. Use as a preprocessing step before other analyses when the "
-            "input SMILES contains disconnected components separated by '.' that include "
-            "inorganic ions (e.g., [Na+], Cl-, etc.)."
-        ),
+        "description": "Strip salts and counterions, keeping the largest organic fragment. Use when SMILES contains '.' separators.",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string (may contain salts)."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }

@@ -1,13 +1,15 @@
 """
 Tool 7: Similar Molecules — task-aware embedding retrieval + MCS + contrastive example.
 
-Uses precomputed task-specific embeddings stored in
-cache/task-specific-embeddings/<task>/embeddings.npz for K-nearest-neighbor
-retrieval from the training set.  Embedding files follow the format from
-tdc_knn.py:  npz with "smiles", "embeddings", and "labels" arrays.
+Supports two embedding types:
+  - "learned"      (default): uses precomputed neural/AttNSOM embeddings, cosine similarity.
+  - "fingerprint"  : uses Morgan + FeatureMorgan bit vectors, weighted Tanimoto similarity
+                     (0.8 × morgantanimoto + 0.2 × feat_morgan tanimoto), matching the
+                     Intern-S1-recipe KNN baseline.
 
-Also leverages a consolidated metadata.csv (cache/metadata.csv) to surface
-precomputed numerical descriptors for each neighbor.
+Cache layout:
+  cache/learned/{task}_embeddings.npz      — smiles, embeddings, labels
+  cache/fingerprint/{task}_embeddings.npz  — smiles, morgan_fps, feat_morgan_fps, labels
 """
 
 import os
@@ -20,30 +22,50 @@ from sklearn.metrics import accuracy_score, f1_score
 import json as _json
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
-_EMBEDDINGS_DIR = _CACHE_DIR
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "tdc", "raw")
+
+EMBEDDING_TYPES = ("learned", "fingerprint")
 
 
 # ------------------------------------------------------------------
 # Embedding & metadata loaders
 # ------------------------------------------------------------------
 
-@lru_cache(maxsize=32)
-def _load_task_data(task: str):
-    """Load precomputed embeddings for *task*.
+def _embeddings_path(task: str, embedding_type: str = "learned") -> str:
+    return os.path.join(_CACHE_DIR, embedding_type, f"{task}_embeddings.npz")
 
-    Returns ``(smiles, embeddings, labels)`` or ``None`` if the file is
-    missing.  ``labels`` may itself be ``None`` if the npz was saved
-    without them.
+
+@lru_cache(maxsize=64)
+def _load_task_data(task: str, embedding_type: str = "learned"):
+    """Load precomputed embeddings for *task* and *embedding_type*.
+
+    Returns a dict with type-specific keys, or ``None`` if the file is missing.
+
+    For ``"learned"``:
+        {"type": "learned", "smiles": ..., "embeddings": ..., "labels": ...}
+    For ``"fingerprint"``:
+        {"type": "fingerprint", "smiles": ..., "morgan_fps": ..., "feat_morgan_fps": ..., "labels": ...}
     """
-    npz_path = os.path.join(_EMBEDDINGS_DIR, task, "embeddings.npz")
+    npz_path = _embeddings_path(task, embedding_type)
     if not os.path.exists(npz_path):
         return None
     d = np.load(npz_path, allow_pickle=True)
-    smiles = d["smiles"]
-    embeddings = d["embeddings"].astype(np.float32)
-    labels = d["labels"] if "labels" in d else None
-    return smiles, embeddings, labels
+
+    if embedding_type == "learned":
+        smiles = d["smiles"]
+        embeddings = d["embeddings"].astype(np.float32)
+        labels = d["labels"] if "labels" in d else None
+        return {"type": "learned", "smiles": smiles, "embeddings": embeddings, "labels": labels}
+
+    elif embedding_type == "fingerprint":
+        smiles = d["smiles"]
+        morgan_fps = d["morgan_fps"].astype(np.float32)       # (N, 2048)
+        feat_fps   = d["feat_morgan_fps"].astype(np.float32)  # (N, 2048)
+        labels = d["labels"] if "labels" in d else None
+        return {"type": "fingerprint", "smiles": smiles,
+                "morgan_fps": morgan_fps, "feat_fps": feat_fps, "labels": labels}
+
+    return None
 
 
 def _load_metadata() -> Optional[pd.DataFrame]:
@@ -71,11 +93,20 @@ def _load_split_smiles(task: str) -> Optional[dict]:
 
 @lru_cache(maxsize=1)
 def _load_knn_metrics() -> dict:
-    """Load precomputed KNN accuracy/F1 per task."""
+    """Load precomputed KNN accuracy/F1 per task and embedding type.
+
+    Returns nested dict: {embedding_type: {task: metrics}}.
+    Falls back to flat {task: metrics} format for backward compatibility.
+    """
     path = os.path.join(_CACHE_DIR, "knn_metrics.json")
     if os.path.exists(path):
         with open(path) as f:
-            return _json.load(f)
+            data = _json.load(f)
+        # Detect new nested format
+        if any(k in data for k in EMBEDDING_TYPES):
+            return data
+        # Legacy flat format — treat as "learned"
+        return {"learned": data}
     return {}
 
 
@@ -119,10 +150,54 @@ def lookup_metadata_property(smiles: str, prop: str) -> Optional[float]:
 
 
 # ------------------------------------------------------------------
+# Similarity computation
+# ------------------------------------------------------------------
+
+def _cosine_similarities(query_emb: np.ndarray, all_embs: np.ndarray) -> np.ndarray:
+    """Cosine similarity of *query_emb* against every row of *all_embs*."""
+    q_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+    norms = np.linalg.norm(all_embs, axis=1, keepdims=True) + 1e-8
+    return (all_embs / norms) @ q_norm  # (N,)
+
+
+def _tanimoto_similarities(query_fp: np.ndarray, ref_fps: np.ndarray) -> np.ndarray:
+    """Bulk Tanimoto similarity of a single query FP against *ref_fps*.
+
+    Both query_fp and ref_fps should be float32 arrays with values in {0, 1}.
+    Tanimoto = |A & B| / |A | B| = dot(A, B) / (|A| + |B| - dot(A, B))
+    """
+    a_and_b = ref_fps @ query_fp                   # (N,)
+    a_bits = query_fp.sum()
+    b_bits = ref_fps.sum(axis=1)                   # (N,)
+    denom = a_bits + b_bits - a_and_b
+    # Avoid divide-by-zero for empty fingerprints
+    return np.where(denom > 0, a_and_b / denom, 0.0)
+
+
+def _weighted_tanimoto(
+    query_morgan: np.ndarray,
+    query_feat: np.ndarray,
+    ref_morgans: np.ndarray,
+    ref_feats: np.ndarray,
+    w_morgan: float = 0.8,
+    w_feat: float = 0.2,
+) -> np.ndarray:
+    """Weighted Tanimoto similarity matching the Intern-S1 KNN formula."""
+    t_morgan = _tanimoto_similarities(query_morgan, ref_morgans)
+    t_feat   = _tanimoto_similarities(query_feat,   ref_feats)
+    return w_morgan * t_morgan + w_feat * t_feat
+
+
+# ------------------------------------------------------------------
 # Core retrieval
 # ------------------------------------------------------------------
 
-def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
+def find_similar_molecules(
+    smiles: str,
+    task: str,
+    k: int = 5,
+    embedding_type: str = "learned",
+) -> str:
     """
     Find similar molecules using task-aware embeddings.
 
@@ -134,50 +209,62 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
         smiles: SMILES string of the query molecule.
         task: Task name (e.g., "AMES", "DILI", "BBB_Martins") for task-aware retrieval.
         k: Number of nearest neighbors to retrieve (default: 5).
+        embedding_type: "learned" (default, cosine similarity) or "fingerprint"
+            (weighted Tanimoto: 0.8×Morgan + 0.2×FeatureMorgan).
 
     Returns:
         Multi-line formatted string with similar molecules, their labels,
         metadata properties, and shared scaffolds (MCS).
     """
-    data = _load_task_data(task)
+    data = _load_task_data(task, embedding_type)
     if data is None:
         return (
-            f"Error: No precomputed embeddings found for task '{task}'.\n"
-            f"Expected: cache/{task}/embeddings.npz"
+            f"Error: No precomputed {embedding_type} embeddings found for task '{task}'.\n"
+            f"Expected: cache/{embedding_type}/{task}_embeddings.npz"
         )
 
-    train_smiles, train_embeddings, train_labels = data
+    train_smiles = data["smiles"]
+    train_labels = data["labels"]
 
-    # --- look up query in the precomputed embedding map ---
+    # --- look up query embedding ---
     match_idx = np.where(train_smiles == smiles)[0]
     if len(match_idx) == 0:
         return (
             f"Error: Query molecule '{smiles}' not found in the "
-            f"precomputed embeddings for task '{task}'."
+            f"precomputed {embedding_type} embeddings for task '{task}'."
         )
-    query_emb = train_embeddings[match_idx[0]]
 
-    # --- cosine similarity ---
-    query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
-    norms = np.linalg.norm(train_embeddings, axis=1, keepdims=True) + 1e-8
-    train_normed = train_embeddings / norms
-    similarities = train_normed @ query_norm
-
-    # Mask exact SMILES match so it doesn't appear as its own neighbor
     exact_mask = (train_smiles == smiles)
+
+    # --- compute similarities ---
+    if embedding_type == "learned":
+        embeddings = data["embeddings"]
+        query_emb = embeddings[match_idx[0]]
+        similarities = _cosine_similarities(query_emb, embeddings)
+
+    elif embedding_type == "fingerprint":
+        morgan_fps = data["morgan_fps"]
+        feat_fps   = data["feat_fps"]
+        query_morgan = morgan_fps[match_idx[0]]
+        query_feat   = feat_fps[match_idx[0]]
+        similarities = _weighted_tanimoto(query_morgan, query_feat, morgan_fps, feat_fps)
+
+    else:
+        return f"Error: Unknown embedding_type '{embedding_type}'. Use 'learned' or 'fingerprint'."
+
+    # Mask self
     similarities[exact_mask] = -np.inf
 
     # --- Restrict neighbors to training split only ---
     split_data = _load_split_smiles(task)
     if split_data is not None:
         train_smi_set = split_data["train"]
-        val_smi_set = split_data["val"]
+        val_smi_set   = split_data["val"]
         all_train_mask = np.array([s in train_smi_set for s in train_smiles])
-        all_val_mask = np.array([s in val_smi_set for s in train_smiles])
+        all_val_mask   = np.array([s in val_smi_set   for s in train_smiles])
     else:
-        # Fallback: treat all as train (no split info available)
         all_train_mask = np.ones(len(train_smiles), dtype=bool)
-        all_val_mask = np.zeros(len(train_smiles), dtype=bool)
+        all_val_mask   = np.zeros(len(train_smiles), dtype=bool)
 
     # Similarities restricted to train-only for neighbor retrieval
     train_sims = similarities.copy()
@@ -200,48 +287,77 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
             "label": int(train_labels[idx]) if train_labels is not None else "N/A",
         })
 
-    # --- Dev neighborhood confidence: predict nearest val neighbors using train embeddings ---
-    dev_neighborhood = {"acc": None, "f1": None, "k": 0}
+    # --- Local train neighborhood confidence ---
+    # For the k=27 nearest train neighbors of the query, compute leave-one-out
+    # KNN accuracy using the same display_k. This tells the model how reliable
+    # KNN predictions are in this region of chemical space.
+    local_train = {"acc": None, "f1": None, "k": 0}
 
     if train_labels is not None:
-        val_sims = similarities.copy()
-        val_sims[~all_val_mask] = -np.inf
-        n_val_available = int((all_val_mask & ~exact_mask).sum())
-        eff_val_k = min(neighborhood_k, n_val_available)
+        train_only_idx = np.where(all_train_mask & ~exact_mask)[0]
+        n_train_available = len(train_only_idx)
+        eff_nbr_k = min(neighborhood_k, n_train_available)
 
-        if eff_val_k >= 3:
-            val_nbr_idx = np.argsort(val_sims)[::-1][:eff_val_k]
-            # Precompute train-only embeddings for KNN prediction
-            train_only_idx = np.where(all_train_mask)[0]
-            train_only_embs = train_embeddings[train_only_idx]
+        if eff_nbr_k >= 3:
+            # Find the k=27 nearest train neighbors of the query
+            nbr_idx = top_neighborhood_idx[:eff_nbr_k]
             train_only_labels = train_labels[train_only_idx].astype(int)
-            t_norms = np.linalg.norm(train_only_embs, axis=1, keepdims=True) + 1e-8
-            train_only_normed = train_only_embs / t_norms
 
-            val_true = []
-            val_pred = []
-            for vi in val_nbr_idx:
-                v_emb = train_embeddings[vi]
-                v_norm = v_emb / (np.linalg.norm(v_emb) + 1e-8)
-                v_sims = train_only_normed @ v_norm
-                top_voters = np.argsort(v_sims)[::-1][:display_k]
-                voter_labels = train_only_labels[top_voters]
-                val_true.append(int(train_labels[vi]))
-                val_pred.append(int(np.round(voter_labels.mean())))
+            # For each neighbor, predict its label using its own k nearest
+            # train neighbors (excluding itself)
+            nbr_true = []
+            nbr_pred = []
 
-            dev_neighborhood["acc"] = accuracy_score(val_true, val_pred)
-            dev_neighborhood["f1"] = f1_score(val_true, val_pred, zero_division=0)
-            dev_neighborhood["k"] = eff_val_k
+            if embedding_type == "learned":
+                embeddings = data["embeddings"]
+                train_only_embs = embeddings[train_only_idx]
+                t_norms = np.linalg.norm(train_only_embs, axis=1, keepdims=True) + 1e-8
+                train_only_normed = train_only_embs / t_norms
+
+                for ni in nbr_idx:
+                    n_emb = embeddings[ni]
+                    n_norm = n_emb / (np.linalg.norm(n_emb) + 1e-8)
+                    n_sims = train_only_normed @ n_norm
+                    # Exclude self
+                    self_pos = np.where(train_only_idx == ni)[0]
+                    if len(self_pos):
+                        n_sims[self_pos[0]] = -np.inf
+                    top_voters = np.argsort(n_sims)[::-1][:display_k]
+                    voter_labels = train_only_labels[top_voters]
+                    nbr_true.append(int(train_labels[ni]))
+                    nbr_pred.append(int(np.round(voter_labels.mean())))
+
+            elif embedding_type == "fingerprint":
+                morgan_fps = data["morgan_fps"]
+                feat_fps   = data["feat_fps"]
+                train_only_morgans = morgan_fps[train_only_idx]
+                train_only_feats   = feat_fps[train_only_idx]
+
+                for ni in nbr_idx:
+                    n_sims = _weighted_tanimoto(
+                        morgan_fps[ni], feat_fps[ni],
+                        train_only_morgans, train_only_feats,
+                    )
+                    self_pos = np.where(train_only_idx == ni)[0]
+                    if len(self_pos):
+                        n_sims[self_pos[0]] = -np.inf
+                    top_voters = np.argsort(n_sims)[::-1][:display_k]
+                    voter_labels = train_only_labels[top_voters]
+                    nbr_true.append(int(train_labels[ni]))
+                    nbr_pred.append(int(np.round(voter_labels.mean())))
+
+            if nbr_true:
+                local_train["acc"] = accuracy_score(nbr_true, nbr_pred)
+                local_train["f1"]  = f1_score(nbr_true, nbr_pred, average='macro', zero_division=0)
+                local_train["k"]   = eff_nbr_k
 
     # --- contrastive example (closest opposite-label molecule) ---
     contrastive = None
     if train_labels is not None:
-        # Determine the query's presumed label
         query_idx = np.where(train_smiles == smiles)[0]
         if len(query_idx) > 0:
             query_label = int(train_labels[query_idx[0]])
         elif neighbors:
-            # Heuristic: assume same label as nearest neighbor
             query_label = neighbors[0]["label"]
         else:
             query_label = None
@@ -260,7 +376,8 @@ def find_similar_molecules(smiles: str, task: str, k: int = 5) -> str:
 
     return _format_results(
         smiles, task, neighbors, contrastive,
-        dev_neighborhood=dev_neighborhood,
+        local_train=local_train,
+        embedding_type=embedding_type,
     )
 
 
@@ -289,7 +406,6 @@ def _compute_mcs_summary(query_smiles: str, neighbor_smiles: str) -> Optional[st
             return None
 
         q_atoms = mol_q.GetNumHeavyAtoms()
-        n_atoms = mol_n.GetNumHeavyAtoms()
         coverage = mcs.numAtoms / q_atoms if q_atoms > 0 else 0
 
         return f"{mcs.numAtoms} shared atoms ({coverage:.0%} of query)"
@@ -323,14 +439,10 @@ def _get_fg_summary(smiles: str) -> Optional[str]:
         desc = cached_concise_fg_description(smiles)
         if not desc:
             return None
-        # Parse the multi-line FG description into a compact one-liner
-        # Lines look like: "- carboxylic acid: C(=O)O ([*]C(=O)O)"
-        # or "- carboxylic ester (x2): ..."
         names = []
         for line in desc.split("\n"):
             line = line.strip()
             if line.startswith("- "):
-                # Extract just the name (before the colon)
                 name_part = line[2:].split(":")[0].strip()
                 names.append(name_part)
         return ", ".join(names) if names else None
@@ -401,25 +513,28 @@ def _format_results(
     task: str,
     neighbors: List[dict],
     contrastive: Optional[dict],
-    dev_neighborhood: Optional[dict] = None,
+    local_train: Optional[dict] = None,
+    embedding_type: str = "learned",
 ) -> str:
     """Format the full similarity search output."""
-    sections = [f"Similar Molecules for task '{task}' based on embeddings", ""]
+    emb_label = "fingerprint (weighted Tanimoto)" if embedding_type == "fingerprint" else "learned embeddings"
+    sections = [f"Similar Molecules for task '{task}' based on {emb_label}", ""]
 
-    # Embeddings-based KNN metrics
-    knn_metrics = _load_knn_metrics().get(task, {})
-    val_acc = knn_metrics.get("val_accuracy")
-    val_f1 = knn_metrics.get("val_f1")
-    has_dev = dev_neighborhood and dev_neighborhood.get("acc") is not None
+    # KNN metrics (train split)
+    all_metrics = _load_knn_metrics()
+    knn_metrics = all_metrics.get(embedding_type, all_metrics).get(task, {})
+    train_acc = knn_metrics.get("train_accuracy")
+    train_f1  = knn_metrics.get("train_f1")
+    has_local = local_train and local_train.get("acc") is not None
 
-    if val_acc is not None or has_dev:
-        sections.append("Embeddings-based KNN Metrics:")
-        if val_acc is not None:
-            sections.append(f"- global -> accuracy={val_acc:.3f}, F1={val_f1:.3f}")
-        if has_dev:
+    if train_acc is not None or has_local:
+        sections.append("KNN Metrics (train, leave-one-out):")
+        if train_acc is not None:
+            sections.append(f"- global -> accuracy={train_acc:.3f}, F1={train_f1:.3f}")
+        if has_local:
             sections.append(
-                f"- local ({dev_neighborhood['k']} nearest neighbors) -> "
-                f"accuracy={dev_neighborhood['acc']:.3f}, F1={dev_neighborhood['f1']:.3f}"
+                f"- local ({local_train['k']} nearest neighbors) -> "
+                f"accuracy={local_train['acc']:.3f}, F1={local_train['f1']:.3f}"
             )
         sections.append("")
 
@@ -439,29 +554,107 @@ def _format_results(
 
 
 # ------------------------------------------------------------------
-# Tool schema
+# Tool schema (generic, requires task parameter)
 # ------------------------------------------------------------------
 
 TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "find_similar_molecules",
-        "description": (
-            "Find the most similar molecules from the training set using task-aware "
-            "embeddings. Returns K nearest neighbors with their labels, key properties "
-            "(MW, logP, TPSA), and functional groups, plus the closest molecule with the "
-            "opposite label for contrastive SAR reasoning. Includes KNN accuracy metrics "
-            "(global and local neighborhood). Use this for structure-activity analysis."
-        ),
+        "description": "Find K nearest neighbors from training set with labels, properties, and contrastive opposite-label example.",
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the query molecule."},
-                "task": {"type": "string", "description": "Task name for task-aware retrieval (e.g., 'AMES', 'DILI')."},
-                "k": {"type": "integer", "description": "Number of nearest neighbors to retrieve (default: 5)."}
+                "smiles": {"type": "string"},
+                "task": {"type": "string", "description": "Task name (e.g. 'AMES', 'DILI')."},
+                "k": {"type": "integer", "description": "Number of neighbors (default: 5)."},
+                "embedding_type": {
+                    "type": "string",
+                    "enum": ["learned", "fingerprint"],
+                },
             },
             "required": ["smiles", "task"],
-            "additionalProperties": False,
         }
     }
+}
+
+
+# ------------------------------------------------------------------
+# Per-task tool schemas and dispatch
+# ------------------------------------------------------------------
+
+# All TDC tasks with fingerprint embeddings
+TASKS = [
+    "AMES", "BBB_Martins", "Bioavailability_Ma",
+    "CYP2C9_Substrate_CarbonMangels", "CYP2D6_Substrate_CarbonMangels",
+    "CYP3A4_Substrate_CarbonMangels", "Carcinogens_Lagunin", "ClinTox",
+    "DILI", "HIA_Hou", "PAMPA_NCATS", "Pgp_Broccatelli",
+    "SARSCoV2_3CLPro_Diamond", "SARSCoV2_Vitro_Touret",
+    "Skin_Reaction", "hERG",
+]
+
+# Short aliases for task-specific function names.
+# Long TDC task names (e.g. CYP2C9_Substrate_CarbonMangels) are hard for
+# LLMs to reproduce exactly, so we use concise proxies as the tool name
+# the model sees.  Tasks not listed here use their original name lowercased.
+TASK_ALIASES: Dict[str, str] = {
+    "AMES": "ames",
+    "BBB_Martins": "bbb",
+    "Bioavailability_Ma": "bioavail",
+    "CYP2C9_Substrate_CarbonMangels": "cyp2c9",
+    "CYP2D6_Substrate_CarbonMangels": "cyp2d6",
+    "CYP3A4_Substrate_CarbonMangels": "cyp3a4",
+    "Carcinogens_Lagunin": "carcinogens",
+    "ClinTox": "clintox",
+    "DILI": "dili",
+    "HIA_Hou": "hia",
+    "PAMPA_NCATS": "pampa",
+    "Pgp_Broccatelli": "pgp",
+    "SARSCoV2_3CLPro_Diamond": "sarscov2_3cl",
+    "SARSCoV2_Vitro_Touret": "sarscov2_vitro",
+    "Skin_Reaction": "skin",
+    "hERG": "herg",
+}
+
+
+def _task_alias(task: str) -> str:
+    """Return the short alias for *task*, falling back to the lowercased name."""
+    return TASK_ALIASES.get(task, task.lower())
+
+
+def _make_task_tool_schema(task: str) -> Dict[str, Any]:
+    """Generate a task-specific tool schema with task baked in."""
+    alias = _task_alias(task)
+    return {
+        "type": "function",
+        "function": {
+            "name": f"find_similar_molecules_{alias}",
+            "description": f"Find nearest neighbors from {task} training set with labels and contrastive example.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "smiles": {"type": "string"},
+                },
+                "required": ["smiles"],
+            }
+        }
+    }
+
+
+def _make_task_callable(task: str):
+    """Return a callable that calls find_similar_molecules with task pre-filled."""
+    alias = _task_alias(task)
+    def _find_similar(smiles: str) -> str:
+        return find_similar_molecules(smiles, task=task, k=5, embedding_type="fingerprint")
+    _find_similar.__name__ = f"find_similar_molecules_{alias}"
+    return _find_similar
+
+
+# Pre-built registries for all tasks
+TASK_TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
+    task: _make_task_tool_schema(task) for task in TASKS
+}
+
+TASK_CALLABLES: Dict[str, Any] = {
+    f"find_similar_molecules_{_task_alias(task)}": _make_task_callable(task) for task in TASKS
 }

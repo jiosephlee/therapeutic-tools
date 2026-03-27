@@ -912,23 +912,16 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "function": {
         "name": "screen_structural_alerts",
         "description": (
-            "Screen a molecule for toxicophores — structural motifs associated with "
-            "specific toxicity mechanisms. Groups alerts into categories like 'Michael "
-            "acceptor' (protein-reactive electrophile), 'alkylating agent' (DNA-reactive), "
-            "'PAH' (CYP-activated), etc. Each category includes a mechanistic explanation. "
-            "Also screens against ToxAlerts endpoint-specific patterns covering skin "
-            "sensitization, mutagenicity, carcinogenicity, reactive metabolite formation, "
-            "electrophilic reactivity, chelation, and promiscuity. Returns pharmacophore "
-            "feature counts (donor/acceptor/aromatic/hydrophobe). Use this to identify "
-            "structural liabilities and understand their toxicological mechanisms."
+            "Screen for toxicophores and structural alerts with mechanistic categories "
+            "(e.g. Michael acceptors, alkylating agents, PAH). "
+            "Includes ToxAlerts endpoint patterns and pharmacophore feature counts."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "SMILES string of the molecule."}
+                "smiles": {"type": "string"}
             },
             "required": ["smiles"],
-            "additionalProperties": False,
         }
     }
 }
