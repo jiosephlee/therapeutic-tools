@@ -51,6 +51,9 @@ from .scaffold import TOOL_SCHEMA as GET_SCAFFOLD_TOOL
 from .solubility import predict_solubility
 from .solubility import TOOL_SCHEMA as PREDICT_SOLUBILITY_TOOL
 
+from .decision_tree import decision_tree_analysis
+from .decision_tree import TOOL_SCHEMA as DECISION_TREE_ANALYSIS_TOOL
+
 
 # ============================================================
 # Tool registry (default tools served to agents)
@@ -81,6 +84,7 @@ _FUNCTION_MAP = {
     "predict_metabolites": predict_metabolites,
     "get_scaffold": get_scaffold,
     "predict_solubility": predict_solubility,
+    "decision_tree_analysis": decision_tree_analysis,
     **SIMILAR_MOLECULES_TASK_CALLABLES,
 }
 

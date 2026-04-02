@@ -62,8 +62,10 @@ def _load_task_data(task: str, embedding_type: str = "learned"):
         morgan_fps = d["morgan_fps"].astype(np.float32)       # (N, 2048)
         feat_fps   = d["feat_morgan_fps"].astype(np.float32)  # (N, 2048)
         labels = d["labels"] if "labels" in d else None
+        splits = d["splits"] if "splits" in d else None
         return {"type": "fingerprint", "smiles": smiles,
-                "morgan_fps": morgan_fps, "feat_fps": feat_fps, "labels": labels}
+                "morgan_fps": morgan_fps, "feat_fps": feat_fps,
+                "labels": labels, "splits": splits}
 
     return None
 
@@ -188,6 +190,38 @@ def _weighted_tanimoto(
     return w_morgan * t_morgan + w_feat * t_feat
 
 
+def _compute_query_fp(smiles: str, use_features: bool = False) -> Optional[np.ndarray]:
+    """Compute a Morgan fingerprint on-the-fly for a query not in the cache.
+
+    Uses the same canonicalization as ``build_fingerprint_embeddings.py``
+    (salt removal + canonical SMILES) so the fingerprint is comparable to
+    the cached reference fingerprints.
+    """
+    try:
+        from rdkit import Chem
+        from rdkit.Chem.MolStandardize import rdMolStandardize
+        from rdkit.Chem import rdFingerprintGenerator
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        lfc = rdMolStandardize.LargestFragmentChooser(preferOrganic=True)
+        cleaned = lfc.choose(mol)
+        if cleaned is None:
+            return None
+        if use_features:
+            inv_gen = rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+        else:
+            inv_gen = rdFingerprintGenerator.GetMorganAtomInvGen(includeRingMembership=True)
+        gen = rdFingerprintGenerator.GetMorganGenerator(
+            radius=2, fpSize=2048, atomInvariantsGenerator=inv_gen,
+        )
+        fp = gen.GetFingerprintAsNumPy(cleaned)
+        return fp.astype(np.float32)
+    except Exception:
+        return None
+
+
 # ------------------------------------------------------------------
 # Core retrieval
 # ------------------------------------------------------------------
@@ -197,6 +231,11 @@ def find_similar_molecules(
     task: str,
     k: int = 5,
     embedding_type: str = "learned",
+    # Internal arg — NOT exposed in the OpenAI tool schema.
+    # When True, appends a KNN pseudo-label line (majority vote of k neighbors)
+    # to the output. Used by the prepended-tools build scripts for the
+    # "pseudo" dataset variant; the model never sees this parameter.
+    include_pseudo_label: bool = False,
 ) -> str:
     """
     Find similar molecules using task-aware embeddings.
@@ -211,6 +250,7 @@ def find_similar_molecules(
         k: Number of nearest neighbors to retrieve (default: 5).
         embedding_type: "learned" (default, cosine similarity) or "fingerprint"
             (weighted Tanimoto: 0.8×Morgan + 0.2×FeatureMorgan).
+        include_pseudo_label: Internal flag. Append KNN majority-vote pseudo-label.
 
     Returns:
         Multi-line formatted string with similar molecules, their labels,
@@ -226,18 +266,17 @@ def find_similar_molecules(
     train_smiles = data["smiles"]
     train_labels = data["labels"]
 
-    # --- look up query embedding ---
+    # --- look up query embedding (or compute on-the-fly for fingerprint) ---
     match_idx = np.where(train_smiles == smiles)[0]
-    if len(match_idx) == 0:
-        return (
-            f"Error: Query molecule '{smiles}' not found in the "
-            f"precomputed {embedding_type} embeddings for task '{task}'."
-        )
-
     exact_mask = (train_smiles == smiles)
 
     # --- compute similarities ---
     if embedding_type == "learned":
+        if len(match_idx) == 0:
+            return (
+                f"Error: Query molecule '{smiles}' not found in the "
+                f"precomputed {embedding_type} embeddings for task '{task}'."
+            )
         embeddings = data["embeddings"]
         query_emb = embeddings[match_idx[0]]
         similarities = _cosine_similarities(query_emb, embeddings)
@@ -245,8 +284,18 @@ def find_similar_molecules(
     elif embedding_type == "fingerprint":
         morgan_fps = data["morgan_fps"]
         feat_fps   = data["feat_fps"]
-        query_morgan = morgan_fps[match_idx[0]]
-        query_feat   = feat_fps[match_idx[0]]
+        if len(match_idx) > 0:
+            query_morgan = morgan_fps[match_idx[0]]
+            query_feat   = feat_fps[match_idx[0]]
+        else:
+            # Query not in embeddings (e.g. ambiguous label excluded it).
+            # Compute fingerprint on the fly so we can still retrieve neighbors.
+            query_morgan = _compute_query_fp(smiles, use_features=False)
+            query_feat   = _compute_query_fp(smiles, use_features=True)
+            if query_morgan is None or query_feat is None:
+                return (
+                    f"Error: Could not compute fingerprint for query '{smiles}'."
+                )
         similarities = _weighted_tanimoto(query_morgan, query_feat, morgan_fps, feat_fps)
 
     else:
@@ -256,15 +305,21 @@ def find_similar_molecules(
     similarities[exact_mask] = -np.inf
 
     # --- Restrict neighbors to training split only ---
-    split_data = _load_split_smiles(task)
-    if split_data is not None:
-        train_smi_set = split_data["train"]
-        val_smi_set   = split_data["val"]
-        all_train_mask = np.array([s in train_smi_set for s in train_smiles])
-        all_val_mask   = np.array([s in val_smi_set   for s in train_smiles])
+    splits = data.get("splits")
+    if splits is not None:
+        all_train_mask = (splits == "train")
+        all_val_mask   = (splits == "val")
     else:
-        all_train_mask = np.ones(len(train_smiles), dtype=bool)
-        all_val_mask   = np.zeros(len(train_smiles), dtype=bool)
+        # Legacy fallback: no splits in npz, try raw CSVs
+        split_data = _load_split_smiles(task)
+        if split_data is not None:
+            train_smi_set = split_data["train"]
+            val_smi_set   = split_data["val"]
+            all_train_mask = np.array([s in train_smi_set for s in train_smiles])
+            all_val_mask   = np.array([s in val_smi_set   for s in train_smiles])
+        else:
+            all_train_mask = np.ones(len(train_smiles), dtype=bool)
+            all_val_mask   = np.zeros(len(train_smiles), dtype=bool)
 
     # Similarities restricted to train-only for neighbor retrieval
     train_sims = similarities.copy()
@@ -378,6 +433,7 @@ def find_similar_molecules(
         smiles, task, neighbors, contrastive,
         local_train=local_train,
         embedding_type=embedding_type,
+        include_pseudo_label=include_pseudo_label,
     )
 
 
@@ -515,6 +571,7 @@ def _format_results(
     contrastive: Optional[dict],
     local_train: Optional[dict] = None,
     embedding_type: str = "learned",
+    include_pseudo_label: bool = False,
 ) -> str:
     """Format the full similarity search output."""
     emb_label = "fingerprint (weighted Tanimoto)" if embedding_type == "fingerprint" else "learned embeddings"
@@ -549,6 +606,15 @@ def _format_results(
             sections.append("")
             sections.append("Nearest Contrastive Example (opposite label):")
             sections.append(_format_neighbor(len(neighbors) + 1, contrastive))
+
+    # Append KNN pseudo-label (majority vote of displayed neighbors)
+    if include_pseudo_label and neighbors:
+        neighbor_labels = [n["label"] for n in neighbors]
+        mean_label = sum(neighbor_labels) / len(neighbor_labels)
+        pseudo = 1 if mean_label >= 0.5 else 0
+        label_str = "(B)" if pseudo == 1 else "(A)"
+        sections.append("")
+        sections.append(f"KNN Predicted Label: {label_str}")
 
     return "\n".join(sections)
 
@@ -644,8 +710,11 @@ def _make_task_tool_schema(task: str) -> Dict[str, Any]:
 def _make_task_callable(task: str):
     """Return a callable that calls find_similar_molecules with task pre-filled."""
     alias = _task_alias(task)
-    def _find_similar(smiles: str) -> str:
-        return find_similar_molecules(smiles, task=task, k=5, embedding_type="fingerprint")
+    def _find_similar(smiles: str, include_pseudo_label: bool = False) -> str:
+        return find_similar_molecules(
+            smiles, task=task, k=5, embedding_type="fingerprint",
+            include_pseudo_label=include_pseudo_label,
+        )
     _find_similar.__name__ = f"find_similar_molecules_{alias}"
     return _find_similar
 
