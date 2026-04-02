@@ -30,6 +30,8 @@ from .safety import TOOL_SCHEMA as SCREEN_STRUCTURAL_ALERTS_TOOL
 
 from .similarity import find_similar_molecules
 from .similarity import TOOL_SCHEMA as FIND_SIMILAR_MOLECULES_TOOL
+from .similarity import TASK_TOOL_SCHEMAS as SIMILAR_MOLECULES_TASK_SCHEMAS
+from .similarity import TASK_CALLABLES as SIMILAR_MOLECULES_TASK_CALLABLES
 
 from .salts import remove_salts
 from .salts import TOOL_SCHEMA as REMOVE_SALTS_TOOL
@@ -45,6 +47,9 @@ from .metabolism import TOOL_SCHEMA as PREDICT_METABOLITES_TOOL
 
 from .scaffold import get_scaffold
 from .scaffold import TOOL_SCHEMA as GET_SCAFFOLD_TOOL
+
+from .solubility import predict_solubility
+from .solubility import TOOL_SCHEMA as PREDICT_SOLUBILITY_TOOL
 
 
 # ============================================================
@@ -75,6 +80,8 @@ _FUNCTION_MAP = {
     "get_electronic_properties": get_electronic_properties,
     "predict_metabolites": predict_metabolites,
     "get_scaffold": get_scaffold,
+    "predict_solubility": predict_solubility,
+    **SIMILAR_MOLECULES_TASK_CALLABLES,
 }
 
 
