@@ -16,7 +16,7 @@ Why this tool matters:
 from typing import Dict, Any, List, Optional
 
 
-def predict_metabolites(smiles: str) -> str:
+def predict_metabolites(smiles: str, max_metabolites: int = 3) -> str:
     """
     Predict likely metabolite structures.
 
@@ -30,13 +30,13 @@ def predict_metabolites(smiles: str) -> str:
         Multi-line formatted string with top 3 predicted metabolites.
     """
     # Try GLORYx cache first (integrated SoM + metabolite predictions)
-    gloryx_result = _predict_gloryx(smiles)
+    gloryx_result = _predict_gloryx(smiles, max_metabolites=max_metabolites)
     if gloryx_result is not None:
         return gloryx_result
 
     # Fallback: SyGMa metabolite prediction
     try:
-        return _predict_sygma(smiles)
+        return _predict_sygma(smiles, max_metabolites=max_metabolites)
     except Exception as e:
         return f"Error: Could not predict metabolites for '{smiles}': {e}"
 
@@ -87,13 +87,13 @@ def _predict_gloryx(smiles: str, max_metabolites: int = 3) -> Optional[str]:
     # Filter out entries with no actual predictions
     valid = [m for m in metabolites if m.get("metabolite_smiles")]
     if not valid:
-        return "Predicted Metabolites (GLORYx — Phase 1 + Phase 2):\n\nNo metabolites predicted."
+        return "Predicted Metabolites:\n\nNo metabolites predicted."
 
     # Classify Phase 1 vs Phase 2
     phase2_keywords = {'glucuronid', 'sulph', 'sulfat', 'GSH', 'acetyl', 'glycin',
                        'methylat', 'glutathion', 'conjugat'}
 
-    lines = ["Predicted Metabolites (GLORYx — FAME3 SoM + reaction rules, Phase 1 + Phase 2):", ""]
+    lines = ["Predicted Metabolites:", ""]
     for i, m in enumerate(valid[:max_metabolites], 1):
         met_smi = m["metabolite_smiles"]
         rxn = m.get("reaction_type", "unknown")

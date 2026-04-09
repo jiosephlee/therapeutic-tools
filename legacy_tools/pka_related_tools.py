@@ -109,12 +109,23 @@ def _tool_smiles_and_ph(name: str, description: str) -> Dict[str, Any]:
 # Tool implementations
 # -------------------------
 
-def predict_pka(smiles: str) -> str:
+def _format_site_values(title: str, sites: Dict[int, float], descending: bool = False) -> List[str]:
+    """Format per-site pKa values as concise numeric lines."""
+    if not sites:
+        return [f"{title}: none"]
+    ordered = sorted(sites.items(), key=lambda x: x[1], reverse=descending)
+    joined = ", ".join(f"atom {atom}: {pka:.4f}" for atom, pka in ordered)
+    return [f"{title} ({len(sites)}): {joined}"]
+
+
+def predict_pka(smiles: str, simple: bool = False) -> str:
     """
     Predict pKa values for ionizable sites in a molecule.
 
     Args:
         smiles (str): The SMILES string of the molecule.
+        simple (bool): When True, return a concise pKa summary without mapped SMILES
+            or atom identifiers.
 
     Returns:
         pKa prediction results including:
@@ -136,6 +147,19 @@ def predict_pka(smiles: str) -> str:
 
     most_basic_pka = max(base_sites.values()) if base_sites else None
     most_acidic_pka = min(acid_sites.values()) if acid_sites else None
+
+    if simple:
+        lines = []
+        lines.append("pKa Summary:")
+        if base_sites:
+            base_vals = ", ".join(f"{pka:.2f}" for _, pka in sorted(base_sites.items(), key=lambda x: -x[1]))
+            lines.append(f"- Basic pKa values: {base_vals}")
+        if acid_sites:
+            acid_vals = ", ".join(f"{pka:.2f}" for _, pka in sorted(acid_sites.items(), key=lambda x: x[1]))
+            lines.append(f"- Acidic pKa values: {acid_vals}")
+        if not base_sites and not acid_sites:
+            lines.append("- No ionizable sites predicted.")
+        return "\n".join(lines)
 
     lines = []
     lines.append(f"Mapped SMILES: {atom_smi}")

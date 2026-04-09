@@ -54,6 +54,14 @@ from .solubility import TOOL_SCHEMA as PREDICT_SOLUBILITY_TOOL
 from .decision_tree import decision_tree_analysis
 from .decision_tree import TOOL_SCHEMA as DECISION_TREE_ANALYSIS_TOOL
 
+from .v10 import get_molecular_properties, get_similar_neighbors
+from .v10 import (
+    GET_MOLECULAR_PROPERTIES_TOOL,
+    GET_SIMILAR_NEIGHBORS_TOOL,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V10_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V10_TASK_NEIGHBOR_CALLABLES,
+)
+
 
 # ============================================================
 # Tool registry (default tools served to agents)
@@ -66,6 +74,8 @@ CONSOLIDATED_TOOLS: List[Dict[str, Any]] = [
     ASSESS_ADME_PROPERTIES_TOOL,
     SCREEN_STRUCTURAL_ALERTS_TOOL,
     FIND_SIMILAR_MOLECULES_TOOL,
+    GET_MOLECULAR_PROPERTIES_TOOL,
+    *V10_TASK_NEIGHBOR_TOOL_SCHEMAS.values(),
     REMOVE_SALTS_TOOL,
     PREDICT_METABOLITES_TOOL,
 ]
@@ -85,6 +95,9 @@ _FUNCTION_MAP = {
     "get_scaffold": get_scaffold,
     "predict_solubility": predict_solubility,
     "decision_tree_analysis": decision_tree_analysis,
+    "get_molecular_properties": get_molecular_properties,
+    "get_similar_neighbors": get_similar_neighbors,
+    **V10_TASK_NEIGHBOR_CALLABLES,
     **SIMILAR_MOLECULES_TASK_CALLABLES,
 }
 

@@ -8,7 +8,11 @@ TPSA and surface area live in get_molecule_profile / get_3d_properties.
 from typing import Dict, Any
 
 
-def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
+def assess_adme_properties(
+    smiles: str,
+    ph: float = 7.4,
+    simple_pka: bool = False,
+) -> str:
     """
     Assess ADME-related properties: ionization, partitioning, solubility, and surface area.
 
@@ -17,6 +21,8 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
     Args:
         smiles: SMILES string of the molecule.
         ph: Target pH for ionization/logD estimation (default: 7.4).
+        simple_pka: When True, return a concise pKa summary without mapped SMILES
+            or atom identifiers.
 
     Returns:
         Multi-line formatted string with ADME property assessment.
@@ -33,29 +39,7 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
     # Changed to include provenance so models can distinguish it from the Dimorphite-DL
     # ionization classification below, which uses a different method and can disagree.
     pka_data = _get_pka_data(smiles, cached)
-    lines = ["pKa Prediction (via ML, MolGpKa):"]
-
-    acid_sites = pka_data.get("acid_sites")  # {atom_map: pKa} or None
-    base_sites = pka_data.get("base_sites")
-
-    if acid_sites:
-        site_strs = [f"atom {atom} pKa = {pka:.2f}" for atom, pka in sorted(acid_sites.items(), key=lambda x: x[1])]
-        lines.append(f"  Acidic sites ({len(acid_sites)}): {', '.join(site_strs)}")
-    elif pka_data["num_acidic_sites"] > 0:
-        # Cache fallback — no per-site detail
-        lines.append(f"  Acidic sites ({pka_data['num_acidic_sites']}): most acidic pKa = {pka_data['most_acidic_pka']:.2f}")
-    else:
-        lines.append("  No acidic sites.")
-
-    if base_sites:
-        site_strs = [f"atom {atom} pKa = {pka:.2f}" for atom, pka in sorted(base_sites.items(), key=lambda x: -x[1])]
-        lines.append(f"  Basic sites ({len(base_sites)}): {', '.join(site_strs)}")
-    elif pka_data["num_basic_sites"] > 0:
-        lines.append(f"  Basic sites ({pka_data['num_basic_sites']}): most basic pKa = {pka_data['most_basic_pka']:.2f}")
-    else:
-        lines.append("  No basic sites.")
-
-    sections.append("\n".join(lines))
+    sections.append(_format_pka_section(smiles, pka_data, simple=simple_pka))
 
     # Ionization classification (compact format)
     # NOTE (2026-03-26): Ionization is classified by Dimorphite-DL, which matches atoms
@@ -84,6 +68,42 @@ def assess_adme_properties(smiles: str, ph: float = 7.4) -> str:
             sections.append(f"Solubility: Error - {e}")
 
     return "\n".join(sections)
+
+
+def _format_pka_section(smiles: str, pka_data: dict, simple: bool = False) -> str:
+    """Format pKa output. Simple mode omits mapped SMILES and atom identifiers."""
+    acid_sites = pka_data.get("acid_sites")
+    base_sites = pka_data.get("base_sites")
+
+    if not simple:
+        lines = ["pKa Prediction (via ML, MolGpKa):"]
+        if acid_sites:
+            site_strs = [f"atom {atom} pKa = {pka:.2f}" for atom, pka in sorted(acid_sites.items(), key=lambda x: x[1])]
+            lines.append(f"  Acidic sites ({len(acid_sites)}): {', '.join(site_strs)}")
+        elif pka_data["num_acidic_sites"] > 0:
+            lines.append(f"  Acidic sites ({pka_data['num_acidic_sites']}): most acidic pKa = {pka_data['most_acidic_pka']:.2f}")
+        else:
+            lines.append("  No acidic sites.")
+
+        if base_sites:
+            site_strs = [f"atom {atom} pKa = {pka:.2f}" for atom, pka in sorted(base_sites.items(), key=lambda x: -x[1])]
+            lines.append(f"  Basic sites ({len(base_sites)}): {', '.join(site_strs)}")
+        elif pka_data["num_basic_sites"] > 0:
+            lines.append(f"  Basic sites ({pka_data['num_basic_sites']}): most basic pKa = {pka_data['most_basic_pka']:.2f}")
+        else:
+            lines.append("  No basic sites.")
+        return "\n".join(lines)
+
+    lines = ["pKa Summary (via ML, MolGpKa):"]
+    if base_sites:
+        base_str = ", ".join(f"{pka:.2f}" for _, pka in sorted(base_sites.items(), key=lambda x: -x[1]))
+        lines.append(f"- Basic pKa values: {base_str}")
+    if acid_sites:
+        acid_str = ", ".join(f"{pka:.2f}" for _, pka in sorted(acid_sites.items(), key=lambda x: x[1]))
+        lines.append(f"- Acidic pKa values: {acid_str}")
+    if not base_sites and not acid_sites:
+        lines.append("- No ionizable sites predicted.")
+    return "\n".join(lines)
 
 
 def _compact_ionization(smiles: str, ph: float = 7.4) -> str:
@@ -237,6 +257,19 @@ def _get_pka_data(smiles: str, cached) -> dict:
         "acid_sites": acid_sites,
         "base_sites": base_sites,
     }
+
+
+def _get_mapped_pka_smiles(smiles: str):
+    """Return the MolGpKa atom-mapped SMILES for display, or None on failure."""
+    try:
+        from .legacy_tools.pka_related_tools import _mol_from_smiles, _get_pka_predictor
+        mol = _mol_from_smiles(smiles)
+        predictor = _get_pka_predictor()
+        prediction = predictor.predict(mol)
+        from rdkit import Chem
+        return Chem.MolToSmiles(prediction.mol)
+    except Exception:
+        return None
 
 
 def _estimate_logd_from_pka(smiles: str, ph: float, pka_data: dict, cached) -> float:

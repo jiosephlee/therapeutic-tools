@@ -9,7 +9,7 @@ Computationally expensive (~seconds) — call only when 3D info is needed.
 from typing import Dict, Any
 
 
-def get_3d_properties(smiles: str) -> str:
+def get_3d_properties(smiles: str, include_epsa: bool = True) -> str:
     """
     Compute 3D conformational properties from a conformer ensemble.
 
@@ -26,32 +26,29 @@ def get_3d_properties(smiles: str) -> str:
     Returns:
         Multi-line formatted string with 3D property analysis.
     """
-    from .legacy_tools.ePSA_3D import (
-        exposed_polar_sasa_ensemble,
-        get_3d_exposed_polar_surface,
-    )
-
-    from . import metadata_cache
-
     sections = []
+    if include_epsa:
+        from .legacy_tools.ePSA_3D import get_3d_exposed_polar_surface
+        from . import metadata_cache
 
-    # ePSA — use cache if available
-    cached_psa = metadata_cache.lookup(smiles, "PSA_3D")
-    if cached_psa is not None:
-        sections.append("3D Polar Surface Area (ePSA):")
-        sections.append(f"3D conformation based estimation of PSA: {cached_psa:.2f}")
-    else:
-        try:
-            epsa_result = get_3d_exposed_polar_surface(smiles)
+        # ePSA — use cache if available
+        cached_psa = metadata_cache.lookup(smiles, "PSA_3D")
+        if cached_psa is not None:
             sections.append("3D Polar Surface Area (ePSA):")
-            sections.append(epsa_result if isinstance(epsa_result, str) else str(epsa_result))
-        except Exception as e:
-            sections.append(f"3D ePSA: Error - {e}")
+            sections.append(f"3D conformation based estimation of PSA: {cached_psa:.2f}")
+        else:
+            try:
+                epsa_result = get_3d_exposed_polar_surface(smiles)
+                sections.append("3D Polar Surface Area (ePSA):")
+                sections.append(epsa_result if isinstance(epsa_result, str) else str(epsa_result))
+            except Exception as e:
+                sections.append(f"3D ePSA: Error - {e}")
 
     # 3D Shape descriptors (PMI expansion)
     try:
         shape_result = _compute_shape_descriptors(smiles)
-        sections.append("")
+        if sections:
+            sections.append("")
         sections.append(shape_result)
     except Exception as e:
         sections.append(f"\n3D Shape: Error - {e}")
