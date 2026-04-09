@@ -9,7 +9,8 @@ Supports two embedding types:
 
 Cache layout:
   cache/learned/{task}_embeddings.npz      — smiles, embeddings, labels
-  cache/fingerprint/{task}_embeddings.npz  — smiles, morgan_fps, feat_morgan_fps, labels
+  cache/<fingerprint_subdir>/{task}_embeddings.npz
+      — smiles, canonical_smiles, morgan_fps, feat_morgan_fps, labels
 """
 
 import os
@@ -25,6 +26,12 @@ _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "tdc", "raw")
 
 EMBEDDING_TYPES = ("learned", "fingerprint")
+_FINGERPRINT_CACHE_CANDIDATES = (
+    os.environ.get("THERAPEUTIC_FINGERPRINT_CACHE_SUBDIR"),
+    "fingerprints_with_canonicalized",
+    "fingerprint_v8",
+    "fingerprint",
+)
 
 
 # ------------------------------------------------------------------
@@ -32,7 +39,16 @@ EMBEDDING_TYPES = ("learned", "fingerprint")
 # ------------------------------------------------------------------
 
 def _embeddings_path(task: str, embedding_type: str = "learned") -> str:
-    return os.path.join(_CACHE_DIR, embedding_type, f"{task}_embeddings.npz")
+    if embedding_type != "fingerprint":
+        return os.path.join(_CACHE_DIR, embedding_type, f"{task}_embeddings.npz")
+
+    for subdir in _FINGERPRINT_CACHE_CANDIDATES:
+        if not subdir:
+            continue
+        candidate = os.path.join(_CACHE_DIR, subdir, f"{task}_embeddings.npz")
+        if os.path.exists(candidate):
+            return candidate
+    return os.path.join(_CACHE_DIR, "fingerprint", f"{task}_embeddings.npz")
 
 
 @lru_cache(maxsize=64)
@@ -59,11 +75,13 @@ def _load_task_data(task: str, embedding_type: str = "learned"):
 
     elif embedding_type == "fingerprint":
         smiles = d["smiles"]
+        canonical_smiles = d["canonical_smiles"] if "canonical_smiles" in d else None
         morgan_fps = d["morgan_fps"].astype(np.float32)       # (N, 2048)
         feat_fps   = d["feat_morgan_fps"].astype(np.float32)  # (N, 2048)
         labels = d["labels"] if "labels" in d else None
         splits = d["splits"] if "splits" in d else None
         return {"type": "fingerprint", "smiles": smiles,
+                "canonical_smiles": canonical_smiles,
                 "morgan_fps": morgan_fps, "feat_fps": feat_fps,
                 "labels": labels, "splits": splits}
 
@@ -194,21 +212,17 @@ def _compute_query_fp(smiles: str, use_features: bool = False) -> Optional[np.nd
     """Compute a Morgan fingerprint on-the-fly for a query not in the cache.
 
     Uses the same canonicalization as ``build_fingerprint_embeddings.py``
-    (salt removal + canonical SMILES) so the fingerprint is comparable to
-    the cached reference fingerprints.
+    so the fingerprint is comparable to the cached reference fingerprints.
     """
     try:
         from rdkit import Chem
-        from rdkit.Chem.MolStandardize import rdMolStandardize
         from rdkit.Chem import rdFingerprintGenerator
 
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
-        lfc = rdMolStandardize.LargestFragmentChooser(preferOrganic=True)
-        cleaned = lfc.choose(mol)
-        if cleaned is None:
-            return None
+        canonical_smiles = Chem.MolToSmiles(mol, canonical=True)
+        cleaned = Chem.MolFromSmiles(canonical_smiles)
         if use_features:
             inv_gen = rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
         else:
@@ -222,6 +236,18 @@ def _compute_query_fp(smiles: str, use_features: bool = False) -> Optional[np.nd
         return None
 
 
+def _canonicalize_smiles(smiles: str) -> Optional[str]:
+    """Canonicalize a SMILES string for cache lookup."""
+    try:
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        return Chem.MolToSmiles(mol, canonical=True)
+    except Exception:
+        return None
+
+
 # ------------------------------------------------------------------
 # Core retrieval
 # ------------------------------------------------------------------
@@ -231,11 +257,7 @@ def find_similar_molecules(
     task: str,
     k: int = 5,
     embedding_type: str = "learned",
-    # Internal arg — NOT exposed in the OpenAI tool schema.
-    # When True, appends a KNN pseudo-label line (majority vote of k neighbors)
-    # to the output. Used by the prepended-tools build scripts for the
-    # "pseudo" dataset variant; the model never sees this parameter.
-    include_pseudo_label: bool = False,
+    **kwargs,
 ) -> str:
     """
     Find similar molecules using task-aware embeddings.
@@ -250,12 +272,16 @@ def find_similar_molecules(
         k: Number of nearest neighbors to retrieve (default: 5).
         embedding_type: "learned" (default, cosine similarity) or "fingerprint"
             (weighted Tanimoto: 0.8×Morgan + 0.2×FeatureMorgan).
-        include_pseudo_label: Internal flag. Append KNN majority-vote pseudo-label.
-
     Returns:
         Multi-line formatted string with similar molecules, their labels,
         metadata properties, and shared scaffolds (MCS).
     """
+    # Internal-only compatibility flag used by dataset build scripts.
+    include_pseudo_label = kwargs.pop(
+        "include_pseudo_label",
+        kwargs.pop("include_psuedo_label", False),
+    )
+
     data = _load_task_data(task, embedding_type)
     if data is None:
         return (
@@ -269,6 +295,16 @@ def find_similar_molecules(
     # --- look up query embedding (or compute on-the-fly for fingerprint) ---
     match_idx = np.where(train_smiles == smiles)[0]
     exact_mask = (train_smiles == smiles)
+    cached_canonical_smiles = data.get("canonical_smiles")
+
+    if embedding_type == "fingerprint" and len(match_idx) == 0 and cached_canonical_smiles is not None:
+        query_canonical_smiles = _canonicalize_smiles(smiles)
+        if query_canonical_smiles is not None:
+            canonical_mask = (cached_canonical_smiles == query_canonical_smiles)
+            canonical_match_idx = np.where(canonical_mask)[0]
+            if len(canonical_match_idx) > 0:
+                match_idx = canonical_match_idx
+                exact_mask = exact_mask | canonical_mask
 
     # --- compute similarities ---
     if embedding_type == "learned":
@@ -409,9 +445,8 @@ def find_similar_molecules(
     # --- contrastive example (closest opposite-label molecule) ---
     contrastive = None
     if train_labels is not None:
-        query_idx = np.where(train_smiles == smiles)[0]
-        if len(query_idx) > 0:
-            query_label = int(train_labels[query_idx[0]])
+        if len(match_idx) > 0:
+            query_label = int(train_labels[match_idx[0]])
         elif neighbors:
             query_label = neighbors[0]["label"]
         else:
@@ -710,7 +745,11 @@ def _make_task_tool_schema(task: str) -> Dict[str, Any]:
 def _make_task_callable(task: str):
     """Return a callable that calls find_similar_molecules with task pre-filled."""
     alias = _task_alias(task)
-    def _find_similar(smiles: str, include_pseudo_label: bool = False) -> str:
+    def _find_similar(smiles: str, **kwargs) -> str:
+        include_pseudo_label = kwargs.pop(
+            "include_pseudo_label",
+            kwargs.pop("include_psuedo_label", False),
+        )
         return find_similar_molecules(
             smiles, task=task, k=5, embedding_type="fingerprint",
             include_pseudo_label=include_pseudo_label,

@@ -214,21 +214,21 @@
       "task": "AMES",
       "k": 5,
       "n_train": 5081,
-      "train_accuracy": 0.8022,
-      "train_f1": 0.8014,
-      "val_accuracy": 0.7614,
-      "val_f1": 0.7565,
+      "train_accuracy": 0.8016,
+      "train_f1": 0.8008,
+      "val_accuracy": 0.7628,
+      "val_f1": 0.7578,
       "n_val": 721
     },
     "BBB_Martins": {
       "task": "BBB_Martins",
       "k": 5,
-      "n_train": 1369,
-      "train_accuracy": 0.8882,
-      "train_f1": 0.8468,
-      "val_accuracy": 0.9026,
-      "val_f1": 0.8103,
-      "n_val": 195
+      "n_train": 1376,
+      "train_accuracy": 0.8888,
+      "train_f1": 0.8477,
+      "val_accuracy": 0.8939,
+      "val_f1": 0.7965,
+      "n_val": 198
     },
     "Bioavailability_Ma": {
       "task": "Bioavailability_Ma",
@@ -264,8 +264,8 @@
       "task": "CYP3A4_Substrate_CarbonMangels",
       "k": 5,
       "n_train": 466,
-      "train_accuracy": 0.6094,
-      "train_f1": 0.6093,
+      "train_accuracy": 0.6116,
+      "train_f1": 0.6114,
       "val_accuracy": 0.6567,
       "val_f1": 0.6453,
       "n_val": 67
@@ -283,19 +283,19 @@
     "ClinTox": {
       "task": "ClinTox",
       "k": 5,
-      "n_train": 1006,
-      "train_accuracy": 0.9443,
-      "train_f1": 0.4857,
-      "val_accuracy": 0.9137,
-      "val_f1": 0.4774,
-      "n_val": 139
+      "n_train": 1012,
+      "train_accuracy": 0.9377,
+      "train_f1": 0.4993,
+      "val_accuracy": 0.8958,
+      "val_f1": 0.4725,
+      "n_val": 144
     },
     "DILI": {
       "task": "DILI",
       "k": 5,
       "n_train": 332,
-      "train_accuracy": 0.75,
-      "train_f1": 0.7475,
+      "train_accuracy": 0.756,
+      "train_f1": 0.7533,
       "val_accuracy": 0.7234,
       "val_f1": 0.7188,
       "n_val": 47
@@ -334,8 +334,8 @@
       "task": "SARSCoV2_3CLPro_Diamond",
       "k": 5,
       "n_train": 615,
-      "train_accuracy": 0.9236,
-      "train_f1": 0.6894,
+      "train_accuracy": 0.9252,
+      "train_f1": 0.6995,
       "val_accuracy": 0.8636,
       "val_f1": 0.5875,
       "n_val": 88
@@ -343,9 +343,9 @@
     "SARSCoV2_Vitro_Touret": {
       "task": "SARSCoV2_Vitro_Touret",
       "k": 5,
-      "n_train": 1032,
-      "train_accuracy": 0.9438,
-      "train_f1": 0.5461,
+      "n_train": 1035,
+      "train_accuracy": 0.942,
+      "train_f1": 0.5438,
       "val_accuracy": 0.9189,
       "val_f1": 0.4789,
       "n_val": 148
@@ -354,8 +354,8 @@
       "task": "Skin_Reaction",
       "k": 5,
       "n_train": 282,
-      "train_accuracy": 0.7872,
-      "train_f1": 0.6968,
+      "train_accuracy": 0.7837,
+      "train_f1": 0.69,
       "val_accuracy": 0.725,
       "val_f1": 0.7103,
       "n_val": 40
@@ -363,9 +363,9 @@
     "hERG": {
       "task": "hERG",
       "k": 5,
-      "n_train": 452,
-      "train_accuracy": 0.7677,
-      "train_f1": 0.7045,
+      "n_train": 456,
+      "train_accuracy": 0.7675,
+      "train_f1": 0.7034,
       "val_accuracy": 0.7031,
       "val_f1": 0.6744,
       "n_val": 64

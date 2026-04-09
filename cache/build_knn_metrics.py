@@ -7,7 +7,8 @@ Supports two embedding types:
 
 Cache layout:
   cache/learned/{task}_embeddings.npz      — smiles, embeddings, labels
-  cache/fingerprint/{task}_embeddings.npz  — smiles, morgan_fps, feat_morgan_fps, labels
+  cache/<fingerprint_subdir>/{task}_embeddings.npz
+      — smiles, canonical_smiles, morgan_fps, feat_morgan_fps, labels
 
 Saves per-task metrics (val_accuracy, val_f1, test_accuracy, test_f1) to
 knn_metrics.json with structure:
@@ -39,6 +40,12 @@ _DATA_CANDIDATES = [
     os.path.join(_PROJECT_ROOT, "data", "TDC"),
 ]
 EXCLUDE_DATASETS = {"Tox21", "HIV", "herg_central"}
+FINGERPRINT_SUBDIR_CANDIDATES = [
+    os.environ.get("THERAPEUTIC_FINGERPRINT_CACHE_SUBDIR"),
+    "fingerprints_with_canonicalized",
+    "fingerprint_v8",
+    "fingerprint",
+]
 
 
 def _find_data_dir():
@@ -46,6 +53,18 @@ def _find_data_dir():
         if os.path.isdir(d):
             return d
     return _DATA_CANDIDATES[0]
+
+
+def _resolve_fingerprint_dir(preferred_subdir: str | None = None) -> str:
+    candidates = [preferred_subdir] if preferred_subdir else []
+    candidates.extend(FINGERPRINT_SUBDIR_CANDIDATES)
+    for subdir in candidates:
+        if not subdir:
+            continue
+        path = os.path.join(CACHE_DIR, subdir)
+        if os.path.isdir(path):
+            return path
+    return os.path.join(CACHE_DIR, "fingerprint")
 
 
 # ---------------------------------------------------------------------------
@@ -161,9 +180,9 @@ def evaluate_task_learned(task, k=27):
     return result
 
 
-def evaluate_task_fingerprint(task, k=27):
+def evaluate_task_fingerprint(task, k=27, fingerprint_dir: str | None = None):
     """Compute weighted-Tanimoto KNN metrics for a single task using fingerprint embeddings."""
-    npz_path = os.path.join(CACHE_DIR, "fingerprint", f"{task}_embeddings.npz")
+    npz_path = os.path.join(_resolve_fingerprint_dir(fingerprint_dir), f"{task}_embeddings.npz")
     if not os.path.exists(npz_path):
         return None
 
@@ -237,6 +256,11 @@ def main():
         default="both",
         help="Which embedding type(s) to evaluate (default: both).",
     )
+    parser.add_argument(
+        "--fingerprint-subdir",
+        default=None,
+        help="Fingerprint cache subdirectory under therapeutic_tools/cache/. Defaults to auto-detect.",
+    )
     args = parser.parse_args()
 
     embedding_types = ["learned", "fingerprint"] if args.embedding_type == "both" else [args.embedding_type]
@@ -253,7 +277,7 @@ def main():
         all_results = {}
 
     for emb_type in embedding_types:
-        type_dir = os.path.join(CACHE_DIR, emb_type)
+        type_dir = _resolve_fingerprint_dir(args.fingerprint_subdir) if emb_type == "fingerprint" else os.path.join(CACHE_DIR, emb_type)
         tasks = []
         if os.path.isdir(type_dir):
             for fname in sorted(os.listdir(type_dir)):
@@ -263,13 +287,14 @@ def main():
 
         print(f"\n--- {emb_type}: {len(tasks)} tasks ---")
         type_results = {}
-        evaluate_fn = evaluate_task_learned if emb_type == "learned" else evaluate_task_fingerprint
-
         for task in tasks:
             if task in EXCLUDE_DATASETS:
                 continue
             print(f"  {task}...", end=" ", flush=True)
-            metrics = evaluate_fn(task, k=args.k)
+            if emb_type == "learned":
+                metrics = evaluate_task_learned(task, k=args.k)
+            else:
+                metrics = evaluate_task_fingerprint(task, k=args.k, fingerprint_dir=args.fingerprint_subdir)
             if metrics:
                 type_results[task] = metrics
                 parts = []

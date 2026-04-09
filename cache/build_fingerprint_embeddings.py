@@ -2,23 +2,24 @@
 Build fingerprint-based embedding cache for therapeutic_tools KNN retrieval.
 
 Computes Morgan and FeatureMorgan fingerprints directly from raw TDC CSVs
-(data/tdc/raw/{task}/{split}.csv) using RDKit.
+using RDKit.
 
 Preprocessing:
   1. Reads from data/tdc/raw_deduplicated/ which has already been cleaned
      by scripts/deduplicate_tdc_train.py (conflicting labels dropped,
      same-label duplicates removed from train; val/test untouched).
-  2. Uses raw SMILES as-is (no canonicalization, no salt removal) so that
-     fingerprints capture the actual tested form and lookup keys match the
-     dataset SMILES exactly.
+  2. Stores the original dataset SMILES and a derived canonical SMILES for
+     each entry. Fingerprints are computed from the canonical SMILES so
+     equivalent string variants share the same representation.
   3. Morgan fingerprints: radius=2, nBits=2048
   4. FeatureMorgan fingerprints: radius=2, nBits=2048, useFeatures=True
 
 Saves per-task npz files to:
-    cache/fingerprint/{task}_embeddings.npz
+    cache/<output_subdir>/{task}_embeddings.npz
 
 Each npz contains:
-    smiles          : (N,) object array of raw SMILES strings
+    smiles          : (N,) object array of original dataset SMILES strings
+    canonical_smiles: (N,) object array of canonical SMILES strings
     morgan_fps      : (N, 2048) uint8 fingerprint bit vectors
     feat_morgan_fps : (N, 2048) uint8 fingerprint bit vectors
     labels          : (N,) int32 binary class labels
@@ -26,6 +27,7 @@ Each npz contains:
 
 Usage:
     python build_fingerprint_embeddings.py [--tasks TASK1 TASK2 ...] [--overwrite]
+    python build_fingerprint_embeddings.py --output-subdir fingerprints_with_canonicalized
 """
 
 import sys
@@ -43,9 +45,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _CACHE_DIR = Path(__file__).parent                    # .../therapeutic_tools/cache
-_FINGERPRINT_DIR = _CACHE_DIR / "fingerprint"
 _REPO_ROOT = _CACHE_DIR.parent.parent.parent.parent   # .../OpenRLHF-Tools
 _RAW_DATA_DIR = _REPO_ROOT / "data" / "tdc" / "raw_deduplicated"
+_RAW_FALLBACK_DATA_DIR = _REPO_ROOT / "data" / "tdc" / "raw"
 
 TASKS = [
     "Carcinogens_Lagunin",
@@ -77,24 +79,38 @@ FP_NBITS = 2048
 
 def _load_split(task: str, split: str) -> pd.DataFrame:
     """Load a raw CSV split, returning DataFrame with Drug and Y columns."""
-    path = _RAW_DATA_DIR / task / f"{split}.csv"
-    if not path.exists():
-        return pd.DataFrame(columns=["Drug", "Y"])
-    return pd.read_csv(path)
+    candidates = [
+        _RAW_DATA_DIR / task / f"{split}.csv",
+        _RAW_FALLBACK_DATA_DIR / task / f"{split}.csv",
+    ]
+    for path in candidates:
+        if path.exists():
+            return pd.read_csv(path)
+    return pd.DataFrame(columns=["Drug", "Y"])
 
 
-def _build_entries(task: str) -> tuple[list[tuple[str, int, str]], dict]:
-    """Load (smiles, label, split) entries from pre-deduplicated CSVs.
+def _canonicalize_smiles(smiles: str) -> str | None:
+    """Canonicalize a SMILES string with RDKit."""
+    from rdkit import Chem
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    return Chem.MolToSmiles(mol, canonical=True)
+
+
+def _build_entries(task: str) -> tuple[list[tuple[str, str, int, str]], dict]:
+    """Load (original_smiles, canonical_smiles, label, split) entries.
 
     Reads from raw_deduplicated/ where train has already been cleaned
     (no conflicting labels, no same-label duplicates).  Val is loaded as-is;
     val SMILES that duplicate a train SMILES are skipped.
 
     Returns:
-        entries: list of (smiles, label, split) tuples
+        entries: list of (original_smiles, canonical_smiles, label, split) tuples
         stats: dict with counts
     """
-    stats = {"train": 0, "val": 0, "val_overlap": 0}
+    stats = {"train": 0, "val": 0, "val_overlap": 0, "canonicalization_failed": 0}
 
     entries = []
     seen = set()
@@ -106,11 +122,15 @@ def _build_entries(task: str) -> tuple[list[tuple[str, int, str]], dict]:
         label = row.get("Y")
         if pd.isna(smiles) or pd.isna(label):
             continue
-        smi = str(smiles)
-        if smi in seen:
+        original_smi = str(smiles)
+        if original_smi in seen:
             continue
-        entries.append((smi, int(label), "train"))
-        seen.add(smi)
+        canonical_smi = _canonicalize_smiles(original_smi)
+        if canonical_smi is None:
+            stats["canonicalization_failed"] += 1
+            continue
+        entries.append((original_smi, canonical_smi, int(label), "train"))
+        seen.add(original_smi)
         stats["train"] += 1
 
     # Val (keep all — even if SMILES overlaps with train, we need it as a query target;
@@ -121,12 +141,16 @@ def _build_entries(task: str) -> tuple[list[tuple[str, int, str]], dict]:
         label = row.get("Y")
         if pd.isna(smiles) or pd.isna(label):
             continue
-        smi = str(smiles)
-        if smi in seen:
+        original_smi = str(smiles)
+        if original_smi in seen:
             stats["val_overlap"] += 1
             continue
-        entries.append((smi, int(label), "val"))
-        seen.add(smi)
+        canonical_smi = _canonicalize_smiles(original_smi)
+        if canonical_smi is None:
+            stats["canonicalization_failed"] += 1
+            continue
+        entries.append((original_smi, canonical_smi, int(label), "val"))
+        seen.add(original_smi)
         stats["val"] += 1
 
     return entries, stats
@@ -176,8 +200,9 @@ def _compute_fingerprint(smiles: str, use_features: bool = False) -> np.ndarray:
 # Per-task builder
 # ---------------------------------------------------------------------------
 
-def build_task(task: str, overwrite: bool = False) -> bool:
-    out_path = _FINGERPRINT_DIR / f"{task}_embeddings.npz"
+def build_task(task: str, output_subdir: str = "fingerprint", overwrite: bool = False) -> bool:
+    output_dir = _CACHE_DIR / output_subdir
+    out_path = output_dir / f"{task}_embeddings.npz"
     if out_path.exists() and not overwrite:
         logger.info("%s: already exists, skipping (use --overwrite to rebuild).", task)
         return True
@@ -195,24 +220,28 @@ def build_task(task: str, overwrite: bool = False) -> bool:
 
     logger.info("%s: computing fingerprints for %d molecules...", task, len(entries))
     valid_smiles = []
+    valid_canonical_smiles = []
     morgan_list = []
     feat_list = []
     labels_list = []
     splits_list = []
     n_failed = 0
 
-    for smiles, label, split in entries:
-        morgan = _compute_fingerprint(smiles, use_features=False)
-        feat = _compute_fingerprint(smiles, use_features=True)
+    for original_smiles, canonical_smiles, label, split in entries:
+        morgan = _compute_fingerprint(canonical_smiles, use_features=False)
+        feat = _compute_fingerprint(canonical_smiles, use_features=True)
         if morgan is None or feat is None:
             n_failed += 1
             continue
-        valid_smiles.append(smiles)
+        valid_smiles.append(original_smiles)
+        valid_canonical_smiles.append(canonical_smiles)
         morgan_list.append(morgan)
         feat_list.append(feat)
         labels_list.append(label)
         splits_list.append(split)
 
+    if stats["canonicalization_failed"]:
+        logger.info("%s: %d SMILES failed canonicalization", task, stats["canonicalization_failed"])
     if n_failed:
         logger.info("%s: %d SMILES failed fingerprint computation", task, n_failed)
 
@@ -221,6 +250,7 @@ def build_task(task: str, overwrite: bool = False) -> bool:
         return False
 
     smiles_arr = np.array(valid_smiles, dtype=object)
+    canonical_smiles_arr = np.array(valid_canonical_smiles, dtype=object)
     morgan_arr = np.stack(morgan_list)
     feat_arr = np.stack(feat_list)
     labels_arr = np.array(labels_list, dtype=np.int32)
@@ -229,10 +259,11 @@ def build_task(task: str, overwrite: bool = False) -> bool:
     n_train = (splits_arr == "train").sum()
     n_val = (splits_arr == "val").sum()
 
-    _FINGERPRINT_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     np.savez(
         out_path,
         smiles=smiles_arr,
+        canonical_smiles=canonical_smiles_arr,
         morgan_fps=morgan_arr,
         feat_morgan_fps=feat_arr,
         labels=labels_arr,
@@ -250,6 +281,9 @@ def build_task(task: str, overwrite: bool = False) -> bool:
 # ---------------------------------------------------------------------------
 
 def main():
+    global _RAW_DATA_DIR
+
+    default_raw_data_dir = str(_RAW_DATA_DIR)
     parser = argparse.ArgumentParser(
         description="Build fingerprint embedding npz files from raw TDC CSVs."
     )
@@ -258,16 +292,26 @@ def main():
         help="Specific task names to build (default: all 16 TDC tasks).",
     )
     parser.add_argument(
+        "--data-dir", default=default_raw_data_dir,
+        help="Input TDC directory containing per-task split CSVs.",
+    )
+    parser.add_argument(
+        "--output-subdir", default="fingerprint",
+        help="Cache subdirectory under therapeutic_tools/cache/ for the output NPZ files.",
+    )
+    parser.add_argument(
         "--overwrite", action="store_true",
         help="Overwrite existing npz files.",
     )
     args = parser.parse_args()
 
+    _RAW_DATA_DIR = Path(args.data_dir)
+
     tasks = args.tasks if args.tasks else TASKS
 
     ok, failed = 0, 0
     for task in tasks:
-        success = build_task(task, overwrite=args.overwrite)
+        success = build_task(task, output_subdir=args.output_subdir, overwrite=args.overwrite)
         if success:
             ok += 1
         else:
