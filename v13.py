@@ -210,7 +210,7 @@ def get_features(smiles: str, feature_names: List[str]) -> str:
     return _compute_features_for_smiles(smiles, resolved)
 
 
-K_NEIGHBORS = 3
+K_NEIGHBORS = 5
 
 
 def get_neighbors(
@@ -330,11 +330,9 @@ GET_FEATURES_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_features",
         "description": (
-            "Compute selected molecular features for a given SMILES string. "
-            "Pass a list of feature names to select which analyses to run. "
-            "Supports v12 bucket categories (e.g. 'functional_groups', 'ring_systems') "
-            "and individual RDKit descriptor names "
-            f"(e.g. {', '.join(TOP20_RDKIT_DESCRIPTORS[:5])}, ...)."
+            "Return requested molecular features for a SMILES string. "
+            "Use this to inspect properties such as polarity, lipophilicity, "
+            "charge, ring structure, complexity, or specific named descriptors."
         ),
         "parameters": {
             "type": "object",
@@ -346,7 +344,9 @@ GET_FEATURES_TOOL: Dict[str, Any] = {
                 "feature_names": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "List of feature categories or RDKit descriptor names to compute.",
+                    "description": (
+                        "List of feature names to return for the molecule."
+                    ),
                 },
             },
             "required": ["smiles", "feature_names"],
