@@ -62,6 +62,32 @@ from .v10 import (
     TASK_NEIGHBOR_CALLABLES as V10_TASK_NEIGHBOR_CALLABLES,
 )
 
+from .v11 import get_features, get_neighbors
+from .v11 import (
+    GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V11_FEATURE_NAMES,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V11_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V11_TASK_NEIGHBOR_CALLABLES,
+)
+from .v12 import get_features as v12_get_features, get_neighbors as v12_get_neighbors
+from .v12 import (
+    GET_FEATURES_TOOL as V12_GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL as V12_GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V12_FEATURE_NAMES,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V12_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V12_TASK_NEIGHBOR_CALLABLES,
+)
+from .v13 import get_features as v13_get_features, get_neighbors as v13_get_neighbors
+from .v13 import (
+    GET_FEATURES_TOOL as V13_GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL as V13_GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V13_FEATURE_NAMES,
+    TOP20_RDKIT_DESCRIPTORS as V13_TOP20_RDKIT_DESCRIPTORS,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V13_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V13_TASK_NEIGHBOR_CALLABLES,
+)
+
 
 # ============================================================
 # Tool registry (default tools served to agents)
@@ -99,6 +125,9 @@ _FUNCTION_MAP = {
     "get_similar_neighbors": get_similar_neighbors,
     **V10_TASK_NEIGHBOR_CALLABLES,
     **SIMILAR_MOLECULES_TASK_CALLABLES,
+    "get_features": get_features,
+    "get_neighbors": get_neighbors,
+    **V11_TASK_NEIGHBOR_CALLABLES,
 }
 
 
