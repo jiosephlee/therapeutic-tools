@@ -347,11 +347,13 @@ def _label_str(label: Any) -> str:
     return str(label)
 
 
+K_NEIGHBORS = 3
+
+
 def get_neighbors(
     smiles: str,
     task_name: str,
     feature_names: Optional[List[str]] = None,
-    num_neighbors: int = 5,
     include_labels: bool = True,
 ) -> str:
     """
@@ -361,7 +363,6 @@ def get_neighbors(
         smiles: Input molecule as a SMILES string.
         task_name: TDC task name (e.g. 'AMES', 'DILI'). Fuzzy-matched.
         feature_names: Optional list of features to compute for each neighbor (fuzzy-matched).
-        num_neighbors: Number of neighbors to return (default 5).
         include_labels: Whether to include task labels for neighbors (default True).
 
     Returns:
@@ -374,9 +375,6 @@ def get_neighbors(
         _load_task_data,
         _weighted_tanimoto,
     )
-
-    if num_neighbors <= 0:
-        return "Error: num_neighbors must be a positive integer."
 
     # Resolve task name
     resolved_task = _resolve_task_name(task_name)
@@ -451,7 +449,7 @@ def get_neighbors(
     train_sims[~train_mask] = -np.inf
 
     n_available = int((train_mask & ~exact_mask).sum())
-    k = min(num_neighbors, n_available)
+    k = min(K_NEIGHBORS, n_available)
 
     top_idx = np.argsort(train_sims)[::-1][:k]
 
@@ -465,7 +463,7 @@ def get_neighbors(
         if include_labels and train_labels is not None:
             label_part = f", label: {_label_str(int(train_labels[idx]))}"
 
-        sections.append(f"\n{i}. {nbr_smiles} (similarity: {sim:.4f}{label_part})")
+        sections.append(f"\n{i}. {nbr_smiles} (similarity: {sim:.2f}{label_part})")
 
         if resolved_features:
             feat_text = _compute_features_for_smiles(nbr_smiles, resolved_features)
@@ -536,10 +534,6 @@ GET_NEIGHBORS_TOOL: Dict[str, Any] = {
                     "items": {"type": "string"},
                     "description": "Optional list of feature categories to compute for each neighbor.",
                 },
-                "num_neighbors": {
-                    "type": "integer",
-                    "description": "Number of nearest neighbors to return. Default 5.",
-                },
                 "include_labels": {
                     "type": "boolean",
                     "description": "Whether to include task labels for neighbors. Default true.",
@@ -585,10 +579,6 @@ def _make_task_neighbors_tool_schema(task: str) -> Dict[str, Any]:
                         "items": {"type": "string"},
                         "description": "Optional list of feature categories to compute for each neighbor.",
                     },
-                    "num_neighbors": {
-                        "type": "integer",
-                        "description": "Number of nearest neighbors to return. Default 5.",
-                    },
                     "include_labels": {
                         "type": "boolean",
                         "description": "Whether to include task labels for neighbors. Default true.",
@@ -608,13 +598,11 @@ def _make_task_neighbors_callable(task: str):
     def _get_neighbors(
         smiles: str,
         feature_names: Optional[List[str]] = None,
-        num_neighbors: int = 5,
         include_labels: bool = True,
     ) -> str:
         return get_neighbors(
             smiles, task_name=task,
             feature_names=feature_names,
-            num_neighbors=num_neighbors,
             include_labels=include_labels,
         )
 

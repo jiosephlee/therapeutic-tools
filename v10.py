@@ -131,10 +131,12 @@ def _compute_local_knn_metrics(
     return local_train
 
 
+K_NEIGHBORS = 3
+
+
 def get_similar_neighbors(
     smiles: str,
     task: str,
-    k: int = 5,
     embedding_type: str = "fingerprint",
 ) -> str:
     """
@@ -154,8 +156,6 @@ def get_similar_neighbors(
         _weighted_tanimoto,
     )
 
-    if k <= 0:
-        raise ValueError("k must be a positive integer")
     if embedding_type not in {"learned", "fingerprint"}:
         raise ValueError("embedding_type must be 'learned' or 'fingerprint'")
 
@@ -222,7 +222,7 @@ def get_similar_neighbors(
     neighborhood_k = 27
     n_train_available = int((all_train_mask & ~exact_mask).sum())
     effective_neighborhood_k = min(neighborhood_k, n_train_available)
-    display_k = min(k, n_train_available)
+    display_k = min(K_NEIGHBORS, n_train_available)
 
     top_neighborhood_idx = np.argsort(train_sims)[::-1][:effective_neighborhood_k]
     top_k_idx = top_neighborhood_idx[:display_k]
@@ -237,6 +237,13 @@ def get_similar_neighbors(
             }
         )
 
+    neighbor_labels = [
+        neighbor["label"]
+        for neighbor in neighbors
+        if isinstance(neighbor.get("label"), (int, np.integer))
+    ]
+    neighbors_are_label_homogeneous = len(neighbor_labels) > 0 and len(set(neighbor_labels)) == 1
+
     local_train = _compute_local_knn_metrics(
         data=data,
         embedding_type=embedding_type,
@@ -247,7 +254,7 @@ def get_similar_neighbors(
     )
 
     contrastive = None
-    if train_labels is not None:
+    if train_labels is not None and neighbors_are_label_homogeneous:
         if len(match_idx) > 0:
             query_label = int(train_labels[match_idx[0]])
         elif neighbors:
@@ -291,7 +298,7 @@ def get_similar_neighbors(
         for i, neighbor in enumerate(neighbors, 1):
             sections.append(
                 f"{i}. {neighbor['smiles']} "
-                f"(similarity: {neighbor['similarity']:.4f}, label: {_label_str(neighbor['label'])})"
+                f"(similarity: {neighbor['similarity']:.2f}, label: {_label_str(neighbor['label'])})"
             )
     else:
         sections.append("None found.")
@@ -303,7 +310,7 @@ def get_similar_neighbors(
     else:
         sections.append(
             f"- {contrastive['smiles']} "
-            f"(similarity: {contrastive['similarity']:.4f}, label: {_label_str(contrastive['label'])})"
+            f"(similarity: {contrastive['similarity']:.2f}, label: {_label_str(contrastive['label'])})"
         )
 
     return "\n".join(sections)
@@ -342,7 +349,6 @@ GET_SIMILAR_NEIGHBORS_TOOL: Dict[str, Any] = {
             "properties": {
                 "smiles": {"type": "string", "description": "Input molecule as a SMILES string."},
                 "task": {"type": "string", "description": "Task name (for example 'AMES' or 'DILI')."},
-                "k": {"type": "integer", "description": "Number of nearest neighbors to return. Default 5."},
                 "embedding_type": {
                     "type": "string",
                     "description": "Similarity backend to use: learned embeddings or fingerprint Tanimoto.",
@@ -376,10 +382,6 @@ def _make_task_neighbors_tool_schema(task: str) -> Dict[str, Any]:
                 "type": "object",
                 "properties": {
                     "smiles": {"type": "string", "description": "Input molecule as a SMILES string."},
-                    "k": {
-                        "type": "integer",
-                        "description": "Number of nearest neighbors to return. Default 5.",
-                    },
                 },
                 "required": ["smiles"],
                 "additionalProperties": False,
@@ -392,8 +394,8 @@ def _make_task_neighbors_callable(task: str):
     """Return a callable that calls get_similar_neighbors with task pre-filled."""
     alias = _task_alias(task)
 
-    def _get_similar_neighbors(smiles: str, k: int = 5) -> str:
-        return get_similar_neighbors(smiles, task=task, k=k, embedding_type="fingerprint")
+    def _get_similar_neighbors(smiles: str) -> str:
+        return get_similar_neighbors(smiles, task=task, embedding_type="fingerprint")
 
     _get_similar_neighbors.__name__ = f"get_similar_neighbors_{alias}"
     return _get_similar_neighbors

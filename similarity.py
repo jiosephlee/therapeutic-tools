@@ -588,7 +588,7 @@ def _format_neighbor(idx: int, neighbor: dict) -> str:
     label_str = _label_str(neighbor['label'])
     line = (
         f"{idx}. {neighbor['smiles']} "
-        f"(similarity: {neighbor['similarity']:.4f}, label: {label_str})"
+        f"(similarity: {neighbor['similarity']:.2f}, label: {label_str})"
     )
     props = _get_key_properties(neighbor['smiles'])
     if props:
