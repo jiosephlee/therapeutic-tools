@@ -10,6 +10,7 @@ to provide direct task-relevant toxicity predictions.
 
 import os
 import csv
+import json
 from typing import Dict, Any, List, Tuple, Optional
 from functools import lru_cache
 
@@ -657,6 +658,7 @@ _TOXALERTS_SKIP = {
 }
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+_SAFETY_CACHE_PATH = os.path.join(_CACHE_DIR, "safety_cache.jsonl")
 
 
 import re as _re
@@ -726,6 +728,48 @@ def _load_toxalerts():
     return alerts
 
 
+@lru_cache(maxsize=1)
+def _load_safety_cache() -> Dict[str, str]:
+    """Load precomputed safety string outputs keyed by canonical SMILES."""
+    cache: Dict[str, str] = {}
+    if not os.path.exists(_SAFETY_CACHE_PATH):
+        return cache
+    with open(_SAFETY_CACHE_PATH, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            smiles = entry.get("smiles")
+            result = entry.get("result")
+            if isinstance(smiles, str) and isinstance(result, str):
+                cache[smiles] = result
+    return cache
+
+
+def _canonicalize_smiles(smiles: str) -> Optional[str]:
+    try:
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        return Chem.MolToSmiles(mol, canonical=True)
+    except Exception:
+        return None
+
+
+@lru_cache(maxsize=1)
+def _get_filter_catalog():
+    """Build the RDKit filter catalog once per process."""
+    from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
+
+    params = FilterCatalogParams()
+    params.AddCatalog(FilterCatalogParams.FilterCatalogs.ALL)
+    return FilterCatalog(params)
+
+
 def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
     """Screen against ToxAlerts and return structured data.
 
@@ -787,6 +831,11 @@ def screen_structural_alerts(smiles: str) -> str:
     Returns:
         Multi-line formatted string with toxicophore analysis.
     """
+    canonical = _canonicalize_smiles(smiles)
+    cache = _load_safety_cache()
+    if canonical is not None and canonical in cache:
+        return cache[canonical]
+
     sections = []
 
     # Collect structured data from both sources
@@ -838,16 +887,13 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
     Returns dict mapping category_name -> {"note": str, "alerts": list[str]}.
     """
     from rdkit import Chem
-    from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
     from collections import OrderedDict
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles!r}")
 
-    params = FilterCatalogParams()
-    params.AddCatalog(FilterCatalogParams.FilterCatalogs.ALL)
-    fc = FilterCatalog(params)
+    fc = _get_filter_catalog()
 
     # Collect all raw alerts (deduplicated), with matched fragment SMILES
     seen = set()

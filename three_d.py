@@ -6,7 +6,44 @@ Includes 3D exposed polar surface area (ePSA) and 3D shape (PMI ratios).
 Computationally expensive (~seconds) — call only when 3D info is needed.
 """
 
+import json
+import os
+from functools import lru_cache
 from typing import Dict, Any
+
+_CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+_THREE_D_CACHE_PATH = os.path.join(_CACHE_DIR, "three_d_cache.jsonl")
+
+
+@lru_cache(maxsize=1)
+def _load_three_d_cache() -> dict[tuple[str, bool], str]:
+    """Load precomputed 3D string outputs keyed by (canonical_smiles, include_epsa)."""
+    cache: dict[tuple[str, bool], str] = {}
+    if not os.path.exists(_THREE_D_CACHE_PATH):
+        return cache
+    with open(_THREE_D_CACHE_PATH, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            smiles = entry.get("smiles")
+            include_epsa = entry.get("include_epsa")
+            result = entry.get("result")
+            if isinstance(smiles, str) and isinstance(include_epsa, bool) and isinstance(result, str):
+                cache[(smiles, include_epsa)] = result
+    return cache
+
+
+def _canonicalize_smiles(smiles: str):
+    from rdkit import Chem
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    return Chem.MolToSmiles(mol, canonical=True)
 
 
 def get_3d_properties(smiles: str, include_epsa: bool = True) -> str:
@@ -26,6 +63,13 @@ def get_3d_properties(smiles: str, include_epsa: bool = True) -> str:
     Returns:
         Multi-line formatted string with 3D property analysis.
     """
+    canonical = _canonicalize_smiles(smiles)
+    cache = _load_three_d_cache()
+    if canonical is not None:
+        cached_result = cache.get((canonical, include_epsa))
+        if cached_result is not None:
+            return cached_result
+
     sections = []
     if include_epsa:
         from .legacy_tools.ePSA_3D import get_3d_exposed_polar_surface
