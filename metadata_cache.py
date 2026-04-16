@@ -2,7 +2,10 @@
 Shared metadata cache — loads tdc_metadata_consolidated.csv once.
 
 All tools should call `lookup(smiles, prop)` before computing a descriptor
-from scratch. The CSV contains ~48 precomputed columns for ~45k molecules.
+from scratch. The CSV contains RDKit / ADME / MiniMol columns for ~45k molecules.
+Run ``scripts/data_conversion/add_v14_metadata_columns.py`` after upgrading the
+toolchain to populate v14-specific columns (``f_neutral_7_4``, ``NOCount``,
+carbocycle counts) when missing.
 """
 
 import os

@@ -1,0 +1,3 @@
+[submodule "TRIM"]
+	path = TRIM
+	url = https://github.com/DragonDescentZerotsu/TRIM.git

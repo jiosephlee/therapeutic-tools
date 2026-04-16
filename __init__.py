@@ -87,6 +87,26 @@ from .v13 import (
     TASK_NEIGHBOR_TOOL_SCHEMAS as V13_TASK_NEIGHBOR_TOOL_SCHEMAS,
     TASK_NEIGHBOR_CALLABLES as V13_TASK_NEIGHBOR_CALLABLES,
 )
+from .v14 import get_features as v14_get_features, get_neighbors as v14_get_neighbors
+from .v14 import (
+    GET_FEATURES_TOOL as V14_GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL as V14_GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V14_FEATURE_NAMES,
+    V14_ADDITIONAL_FEATURES,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V14_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V14_TASK_NEIGHBOR_CALLABLES,
+)
+from .v14_no_neighbor import get_features as v14_no_neighbor_get_features
+from .v14_no_neighbor import (
+    GET_FEATURES_TOOL as V14_NO_NEIGHBOR_GET_FEATURES_TOOL,
+    FEATURE_NAMES as V14_NO_NEIGHBOR_FEATURE_NAMES,
+)
+from .v15 import get_mol_properties_and_fg, compare_similar_mols
+from .v15 import (
+    GET_MOL_PROPERTIES_AND_FG_TOOL as V15_GET_MOL_PROPERTIES_AND_FG_TOOL,
+    COMPARE_SIMILAR_MOLS_TOOL as V15_COMPARE_SIMILAR_MOLS_TOOL,
+    TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS as V15_TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS,
+)
 
 
 # ============================================================
@@ -128,6 +148,8 @@ _FUNCTION_MAP = {
     "get_features": get_features,
     "get_neighbors": get_neighbors,
     **V11_TASK_NEIGHBOR_CALLABLES,
+    "get_mol_properties_and_fg": get_mol_properties_and_fg,
+    "compare_similar_mols": compare_similar_mols,
 }
 
 
