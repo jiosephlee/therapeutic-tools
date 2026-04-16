@@ -17,8 +17,6 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from functools import lru_cache
-import json
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -145,29 +143,10 @@ TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS: Dict[str, Dict[str, object]] = {
 }
 
 
-@lru_cache(maxsize=1)
-def _load_fg_cache() -> Dict[str, str]:
-    import os
-
-    cache_path = os.path.join(os.path.dirname(__file__), "cache", "fg_cache.jsonl")
-    payload: Dict[str, str] = {}
-    if not os.path.exists(cache_path):
-        return payload
-    with open(cache_path, encoding="utf-8") as f:
-        for line in f:
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            smiles = row.get("smiles")
-            fg_text = row.get("fg")
-            if isinstance(smiles, str) and isinstance(fg_text, str):
-                payload[smiles] = fg_text
-    return payload
-
-
 def _parse_functional_group_counts(smiles: str) -> Counter[str]:
-    fg_text = _load_fg_cache().get(smiles, "")
+    from .legacy_tools.AccFG import cached_concise_fg_description
+
+    fg_text = cached_concise_fg_description(smiles) or ""
     counts: Counter[str] = Counter()
     for line in fg_text.splitlines():
         stripped = line.strip()
@@ -203,7 +182,7 @@ def _render_dense_feature_lines(smiles: str) -> List[str]:
 def _render_functional_group_lines(smiles: str) -> List[str]:
     counts = _parse_functional_group_counts(smiles)
     if not counts:
-        return ["Present functional groups: none detected in cache."]
+        return ["Present functional groups: none detected."]
     ordered = sorted(counts.items(), key=lambda item: (item[0], item[1]))
     return [
         "Present functional groups:",
