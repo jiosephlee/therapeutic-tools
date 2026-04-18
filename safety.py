@@ -770,7 +770,7 @@ def _get_filter_catalog():
     return FilterCatalog(params)
 
 
-def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
+def _screen_toxalerts_data(smiles: str, include_smarts: bool = True) -> Dict[str, Dict]:
     """Screen against ToxAlerts and return structured data.
 
     Returns dict mapping display_name -> {"note": str, "alerts": list[str]}.
@@ -795,7 +795,7 @@ def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
                 frag_smi = Chem.MolFragmentToSmiles(mol, atomsToUse=match_atoms)
             except Exception:
                 pass
-            display = f"{name} [{frag_smi}]" if frag_smi else name
+            display = f"{name} [{frag_smi}]" if include_smarts and frag_smi else name
             if prop not in grouped:
                 grouped[prop] = []
             grouped[prop].append(display)
@@ -811,7 +811,7 @@ def _screen_toxalerts_data(smiles: str) -> Dict[str, Dict]:
 
 # ── Main entry point ──────────────────────────────────────────────────
 
-def screen_structural_alerts(smiles: str) -> str:
+def screen_structural_alerts(smiles: str, include_smarts: bool = True) -> str:
     """
     Screen a molecule for toxicophores (structural alerts grouped by
     mechanism of toxicity) and pharmacophore features.
@@ -832,9 +832,10 @@ def screen_structural_alerts(smiles: str) -> str:
         Multi-line formatted string with toxicophore analysis.
     """
     canonical = _canonicalize_smiles(smiles)
-    cache = _load_safety_cache()
-    if canonical is not None and canonical in cache:
-        return cache[canonical]
+    if include_smarts:
+        cache = _load_safety_cache()
+        if canonical is not None and canonical in cache:
+            return cache[canonical]
 
     sections = []
 
@@ -842,11 +843,11 @@ def screen_structural_alerts(smiles: str) -> str:
     rdkit_data = {}
     toxalerts_data = {}
     try:
-        rdkit_data = _screen_structural_alerts_data(smiles)
+        rdkit_data = _screen_structural_alerts_data(smiles, include_smarts=include_smarts)
     except Exception as e:
         sections.append(f"Structural Alerts: Error screening RDKit catalogs - {e}")
     try:
-        toxalerts_data = _screen_toxalerts_data(smiles)
+        toxalerts_data = _screen_toxalerts_data(smiles, include_smarts=include_smarts)
     except Exception as e:
         sections.append(f"Structural Alerts: Error screening ToxAlerts - {e}")
 
@@ -881,7 +882,7 @@ def screen_structural_alerts(smiles: str) -> str:
     return "\n".join(sections)
 
 
-def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
+def _screen_structural_alerts_data(smiles: str, include_smarts: bool = True) -> Dict[str, Dict]:
     """Screen against all RDKit alert catalogs and return structured data.
 
     Returns dict mapping category_name -> {"note": str, "alerts": list[str]}.
@@ -925,7 +926,7 @@ def _screen_structural_alerts_data(smiles: str) -> Dict[str, Dict]:
     uncategorized = []
 
     for alert_name, frag_smi in raw_alerts:
-        display = f"{alert_name} [{frag_smi}]" if frag_smi else alert_name
+        display = f"{alert_name} [{frag_smi}]" if include_smarts and frag_smi else alert_name
         cat = _classify_alert(alert_name)
         if cat:
             if cat not in grouped:

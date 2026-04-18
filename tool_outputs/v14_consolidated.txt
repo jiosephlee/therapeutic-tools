@@ -1,0 +1,421 @@
+Therapeutic tool outputs for v14_consolidated
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_features ===
+Physicochemical Properties:
+- Molecular weight: 180.16 Da
+- Heavy atoms: 13, Heteroatoms: 4
+- logP (Wildman-Crippen): 1.31
+- TPSA: 63.60 Å²
+- H-bond donors: 1, H-bond acceptors: 3
+- Rotatable bonds: 2
+- Fraction sp3 carbons (Fsp3): 0.11
+- Molar refractivity: 44.71
+- Neutral fraction at pH 7.4: 0.0001
+- Labute surface area: 74.7600
+- Nitrogen and oxygen atom count: 4
+- Carbocycle counts: aliphatic=0, aromatic=1, saturated=0
+
+Complexity Metrics:
+- Bertz complexity: 343.22
+- Topology: HallKierAlpha=-1.84, Kappa1=9.25, Kappa2=3.71, Kappa3=2.30, BalabanJ=3.04
+- Amide bonds: 0
+- Stereocenters: 0
+
+Electronic Properties:
+- Gasteiger charges: max=0.34 (atom 10, C), min=-0.48 (atom 12, O)
+- Charge polarization: 0.82
+- EState indices: max=10.61 (nucleophilic proxy), min=-1.11 (electrophilic proxy)
+
+Functional groups:
+- carboxylic acid
+- carboxylic ester
+- benzene
+
+Ring Systems:
+- 1 system: 6 membered, aromatic, no heteroatoms
+- Ring counts: 1 total, 1 aromatic, 0 aliphatic, 0 saturated
+- Heterocycles: 0
+- Aromatic atoms: 6 / 13
+- Not detected: PAH, macrocycle, spiro, bridgehead
+
+3D Shape Descriptors:
+- PMI ratios (npr1, npr2): (0.4627, 0.6583) → intermediate
+
+Structural Alerts (5 categories):
+
+1. Ester / phenol ester / carbonate
+Esters can be hydrolyzed to release active metabolites; phenol esters and carbonates may indicate prodrug instability.
+Matched alerts (3): phenol_ester [CC(=O)Oc1ccccc1], Phenylester [O=COc1ccccc1], Ester [cOC(C)=O]
+
+2. Skin sensitization
+Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+Matched alerts (2): Phenyl esters [CC(=O)Oc1ccccc1], Esters of aromatic alcohols and their thio and aza analogues [cOC(C)=O]
+
+3. Electrophilic agents
+Electrophilic centers that can react with biological nucleophiles (protein thiols, DNA bases).
+Matched alerts (1): Acetates [cOC=O]
+
+4. Reactive metabolite formation (idiosyncratic toxicity)
+Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+Matched alerts (1): Carboxylic acids [cC(=O)O]
+
+5. Reactive / unstable / toxic groups
+Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+Matched alerts (1): Carboxylic acid esters [ccOC(C)=O]
+
+pKa Summary:
+- Acidic pKa values: 3.39
+
+Ionization at pH 7.4: acid, charge -1
+- Dominant form: CC(=O)Oc1ccccc1C(=O)[O-]
+- Ambiguous (pKa near pH): No
+
+LogD at pH 7.4: -2.70
+
+Solubility: logS = -1.46 log(mol/L)
+
+=== get_neighbors ===
+Nearest Neighbors for task 'AMES' (k=5):
+
+1. CC(=O)Oc1ccccc1C(=O)Oc1ccccc1C(=O)O (similarity: 0.84, label: A)
+   Physicochemical Properties:
+   - Molecular weight: 300.27 Da
+   - Heavy atoms: 22, Heteroatoms: 6
+   - logP (Wildman-Crippen): 2.53
+   - TPSA: 89.90 Å²
+   - H-bond donors: 1, H-bond acceptors: 5
+   - Rotatable bonds: 4
+   - Fraction sp3 carbons (Fsp3): 0.06
+   - Molar refractivity: 76.11
+   - Neutral fraction at pH 7.4: 0.0001
+   - Labute surface area: 125.4500
+   - Nitrogen and oxygen atom count: 6
+   - Carbocycle counts: aliphatic=0, aromatic=2, saturated=0
+   
+   Complexity Metrics:
+   - Bertz complexity: 734.92
+   - Topology: HallKierAlpha=-3.15, Kappa1=15.24, Kappa2=6.53, Kappa3=3.48, BalabanJ=2.31
+   - Amide bonds: 0
+   - Stereocenters: 0
+   
+   Electronic Properties:
+   - Gasteiger charges: max=0.35 (atom 10, C), min=-0.48 (atom 21, O)
+   - Charge polarization: 0.82
+   - EState indices: max=12.19 (nucleophilic proxy), min=-1.21 (electrophilic proxy)
+   
+   Functional groups:
+   - carboxylic acid
+   - carboxylic ester (x2)
+   - benzene (x2)
+   
+   Ring Systems:
+   - 2 systems:
+     - 6 membered, aromatic, no heteroatoms
+     - 6 membered, aromatic, no heteroatoms
+   - Ring counts: 2 total, 2 aromatic, 0 aliphatic, 0 saturated
+   - Heterocycles: 0
+   - Aromatic atoms: 12 / 22
+   - Not detected: PAH, macrocycle, spiro, bridgehead
+   
+   3D Shape Descriptors:
+   - PMI ratios (npr1, npr2): (0.3790, 0.8290) → intermediate
+   
+   Structural Alerts (5 categories):
+   
+   1. Ester / phenol ester / carbonate
+   Esters can be hydrolyzed to release active metabolites; phenol esters and carbonates may indicate prodrug instability.
+   Matched alerts (3): phenol_ester [CC(=O)Oc1ccccc1], Phenylester [O=COc1ccccc1], Ester [cOC(C)=O]
+   
+   2. Skin sensitization
+   Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+   Matched alerts (2): Phenyl esters [CC(=O)Oc1ccccc1], Esters of aromatic alcohols and their thio and aza analogues [cOC(C)=O]
+   
+   3. Electrophilic agents
+   Electrophilic centers that can react with biological nucleophiles (protein thiols, DNA bases).
+   Matched alerts (1): Acetates [cOC=O]
+   
+   4. Reactive metabolite formation (idiosyncratic toxicity)
+   Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+   Matched alerts (1): Carboxylic acids [cC(=O)O]
+   
+   5. Reactive / unstable / toxic groups
+   Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+   Matched alerts (1): Carboxylic acid esters [ccOC(C)=O]
+   
+   pKa Summary:
+   - Acidic pKa values: 3.11
+   
+   Ionization at pH 7.4: acid, charge -1
+   - Dominant form: CC(=O)Oc1ccccc1C(=O)Oc1ccccc1C(=O)[O-]
+   - Ambiguous (pKa near pH): No
+   
+   LogD at pH 7.4: -1.76
+   
+   Solubility: logS = -4.25 log(mol/L)
+
+2. O=C(O)c1ccccc1C(=O)O (similarity: 0.52, label: A)
+   Physicochemical Properties:
+   - Molecular weight: 166.13 Da
+   - Heavy atoms: 12, Heteroatoms: 4
+   - logP (Wildman-Crippen): 1.08
+   - TPSA: 74.60 Å²
+   - H-bond donors: 2, H-bond acceptors: 2
+   - Rotatable bonds: 2
+   - Fraction sp3 carbons (Fsp3): 0.00
+   - Molar refractivity: 40.36
+   - Neutral fraction at pH 7.4: 0.0001
+   - Labute surface area: 68.0700
+   - Nitrogen and oxygen atom count: 4
+   - Carbocycle counts: aliphatic=0, aromatic=1, saturated=0
+   
+   Complexity Metrics:
+   - Bertz complexity: 296.58
+   - Topology: HallKierAlpha=-1.84, Kappa1=8.26, Kappa2=3.04, Kappa3=1.42, BalabanJ=3.27
+   - Amide bonds: 0
+   - Stereocenters: 0
+   
+   Electronic Properties:
+   - Gasteiger charges: max=0.34 (atom 1, C), min=-0.48 (atom 2, O)
+   - Charge polarization: 0.81
+   - EState indices: max=10.46 (nucleophilic proxy), min=-1.23 (electrophilic proxy)
+   
+   Functional groups:
+   - carboxylic acid (x2)
+   - benzene
+   
+   Ring Systems:
+   - 1 system: 6 membered, aromatic, no heteroatoms
+   - Ring counts: 1 total, 1 aromatic, 0 aliphatic, 0 saturated
+   - Heterocycles: 0
+   - Aromatic atoms: 6 / 12
+   - Not detected: PAH, macrocycle, spiro, bridgehead
+   
+   3D Shape Descriptors:
+   - PMI ratios (npr1, npr2): (0.5245, 0.5686) → intermediate
+   
+   Structural Alerts (3 categories):
+   
+   1. Reactive / unstable group
+   Miscellaneous reactive or unstable functional groups flagged by medicinal chemistry filters.
+   Matched alerts (1): too many COOH groups (>1) [O=CO.O=CO]
+   
+   2. Other structural flags
+   Miscellaneous structural alerts from medicinal chemistry filters.
+   Matched alerts (1): Dye 2 [OCccCO]
+   
+   3. Reactive metabolite formation (idiosyncratic toxicity)
+   Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+   Matched alerts (1): Carboxylic acids [cC(=O)O]
+   
+   pKa Summary:
+   - Acidic pKa values: 3.21, 3.21
+   
+   Ionization at pH 7.4: acid, charge -2
+   - Dominant form: O=C([O-])c1ccccc1C(=O)[O-]
+   - Ambiguous (pKa near pH): No
+   
+   LogD at pH 7.4: -3.11
+   
+   Solubility: logS = -1.56 log(mol/L)
+
+3. CC(=O)Nc1ccc(OC(=O)c2ccccc2OC(C)=O)cc1 (similarity: 0.49, label: A)
+   Physicochemical Properties:
+   - Molecular weight: 313.31 Da
+   - Heavy atoms: 23, Heteroatoms: 6
+   - logP (Wildman-Crippen): 2.79
+   - TPSA: 81.70 Å²
+   - H-bond donors: 1, H-bond acceptors: 5
+   - Rotatable bonds: 4
+   - Fraction sp3 carbons (Fsp3): 0.12
+   - Molar refractivity: 83.46
+   - Neutral fraction at pH 7.4: 0.9994
+   - Labute surface area: 132.5700
+   - Nitrogen and oxygen atom count: 6
+   - Carbocycle counts: aliphatic=0, aromatic=2, saturated=0
+   
+   Complexity Metrics:
+   - Bertz complexity: 736.90
+   - Topology: HallKierAlpha=-3.15, Kappa1=16.22, Kappa2=7.22, Kappa3=4.67, BalabanJ=2.13
+   - Amide bonds: 1
+   - Stereocenters: 0
+   
+   Electronic Properties:
+   - Gasteiger charges: max=0.35 (atom 9, C), min=-0.43 (atom 17, O)
+   - Charge polarization: 0.77
+   - EState indices: max=12.20 (nucleophilic proxy), min=-0.64 (electrophilic proxy)
+   
+   Functional groups:
+   - carboxylic ester (x2)
+   - secondary amide
+   - benzene (x2)
+   
+   Ring Systems:
+   - 2 systems:
+     - 6 membered, aromatic, no heteroatoms
+     - 6 membered, aromatic, no heteroatoms
+   - Ring counts: 2 total, 2 aromatic, 0 aliphatic, 0 saturated
+   - Heterocycles: 0
+   - Aromatic atoms: 12 / 23
+   - Not detected: PAH, macrocycle, spiro, bridgehead
+   
+   3D Shape Descriptors:
+   - PMI ratios (npr1, npr2): (0.1540, 0.9394) → disc-like
+   
+   Structural Alerts (5 categories):
+   
+   1. Ester / phenol ester / carbonate
+   Esters can be hydrolyzed to release active metabolites; phenol esters and carbonates may indicate prodrug instability.
+   Matched alerts (3): phenol_ester [cC(=O)Oc1ccccc1], Phenylester [O=COc1ccccc1], Ester [cOC(c)=O]
+   
+   2. Skin sensitization
+   Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+   Matched alerts (5): Phenyl esters [cC(=O)Oc1ccccc1], Aromatic primary and secondary amines [cN], Aromatic amines [cN], Aromatic amines precursors [c], Esters of aromatic alcohols and their thio and aza analogues [cNC(C)=O]
+   
+   3. Genotoxic carcinogenicity / mutagenicity
+   DNA-reactive motifs that cause mutations via direct genotoxic mechanisms.
+   Matched alerts (3): Aromatic N-acyl amine [cNC(C)=O], Secondary aromatic acetamides and formamides [c], Aromatic amines [cN]
+   
+   4. Electrophilic agents
+   Electrophilic centers that can react with biological nucleophiles (protein thiols, DNA bases).
+   Matched alerts (1): Acetates [cNC=O]
+   
+   5. Reactive / unstable / toxic groups
+   Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+   Matched alerts (1): Carboxylic acid esters [ccOC(C)=O]
+   
+   pKa Summary:
+   - Basic pKa values: 4.18
+   - Acidic pKa values: 13.80
+   
+   Ionization at pH 7.4: neutral, charge 0
+   - Dominant form: CC(=O)Nc1ccc(OC(=O)c2ccccc2OC(C)=O)cc1
+   - Ambiguous (pKa near pH): No
+   
+   LogD at pH 7.4: 2.79
+   
+   Solubility: logS = -2.74 log(mol/L)
+
+4. Cc1ccccc1C(=O)O (similarity: 0.48, label: A)
+   Physicochemical Properties:
+   - Molecular weight: 136.15 Da
+   - Heavy atoms: 10, Heteroatoms: 2
+   - logP (Wildman-Crippen): 1.69
+   - TPSA: 37.30 Å²
+   - H-bond donors: 1, H-bond acceptors: 1
+   - Rotatable bonds: 1
+   - Fraction sp3 carbons (Fsp3): 0.12
+   - Molar refractivity: 38.14
+   - Neutral fraction at pH 7.4: 0.0004
+   - Labute surface area: 59.1200
+   - Nitrogen and oxygen atom count: 2
+   - Carbocycle counts: aliphatic=0, aromatic=1, saturated=0
+   
+   Complexity Metrics:
+   - Bertz complexity: 253.19
+   - Topology: HallKierAlpha=-1.31, Kappa1=6.80, Kappa2=2.52, Kappa3=1.16, BalabanJ=3.15
+   - Amide bonds: 0
+   - Stereocenters: 0
+   
+   Electronic Properties:
+   - Gasteiger charges: max=0.34 (atom 7, C), min=-0.48 (atom 9, O)
+   - Charge polarization: 0.81
+   - EState indices: max=10.42 (nucleophilic proxy), min=-0.86 (electrophilic proxy)
+   
+   Functional groups:
+   - carboxylic acid
+   - benzene
+   
+   Ring Systems:
+   - 1 system: 6 membered, aromatic, no heteroatoms
+   - Ring counts: 1 total, 1 aromatic, 0 aliphatic, 0 saturated
+   - Heterocycles: 0
+   - Aromatic atoms: 6 / 10
+   - Not detected: PAH, macrocycle, spiro, bridgehead
+   
+   3D Shape Descriptors:
+   - PMI ratios (npr1, npr2): (0.3555, 0.6812) → intermediate
+   
+   Structural Alerts (1 categories):
+   
+   1. Reactive metabolite formation (idiosyncratic toxicity)
+   Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+   Matched alerts (1): Carboxylic acids [cC(=O)O]
+   
+   pKa Summary:
+   - Acidic pKa values: 3.97
+   
+   Ionization at pH 7.4: acid, charge -1
+   - Dominant form: Cc1ccccc1C(=O)[O-]
+   - Ambiguous (pKa near pH): No
+   
+   LogD at pH 7.4: -1.74
+   
+   Solubility: logS = -1.14 log(mol/L)
+
+5. O=C(O)c1ccccc1O (similarity: 0.44, label: A)
+   Physicochemical Properties:
+   - Molecular weight: 138.12 Da
+   - Heavy atoms: 10, Heteroatoms: 3
+   - logP (Wildman-Crippen): 1.09
+   - TPSA: 57.53 Å²
+   - H-bond donors: 2, H-bond acceptors: 2
+   - Rotatable bonds: 1
+   - Fraction sp3 carbons (Fsp3): 0.00
+   - Molar refractivity: 35.07
+   - Neutral fraction at pH 7.4: 0.0000
+   - Labute surface area: 57.5500
+   - Nitrogen and oxygen atom count: 3
+   - Carbocycle counts: aliphatic=0, aromatic=1, saturated=0
+   
+   Complexity Metrics:
+   - Bertz complexity: 254.78
+   - Topology: HallKierAlpha=-1.51, Kappa1=6.61, Kappa2=2.39, Kappa3=1.07, BalabanJ=3.15
+   - Amide bonds: 0
+   - Stereocenters: 0
+   
+   Electronic Properties:
+   - Gasteiger charges: max=0.34 (atom 1, C), min=-0.51 (atom 9, O)
+   - Charge polarization: 0.85
+   - EState indices: max=10.26 (nucleophilic proxy), min=-1.11 (electrophilic proxy)
+   
+   Functional groups:
+   - carboxylic acid
+   - phenol
+   - benzene
+   
+   Ring Systems:
+   - 1 system: 6 membered, aromatic, no heteroatoms
+   - Ring counts: 1 total, 1 aromatic, 0 aliphatic, 0 saturated
+   - Heterocycles: 0
+   - Aromatic atoms: 6 / 10
+   - Not detected: PAH, macrocycle, spiro, bridgehead
+   
+   3D Shape Descriptors:
+   - PMI ratios (npr1, npr2): (0.3388, 0.6612) → intermediate
+   
+   Structural Alerts (3 categories):
+   
+   1. Reactive metabolite formation (idiosyncratic toxicity)
+   Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+   Matched alerts (1): Carboxylic acids [cC(=O)O]
+   
+   2. Reactive / unstable / toxic groups
+   Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+   Matched alerts (1): Simple anilines and phenols [c]
+   
+   3. Chelating agents
+   Can sequester metal ions essential for enzyme function; may interfere with ion channels.
+   Matched alerts (1): F1, F3-F12 [O=C(O)c1ccccc1O]
+   
+   pKa Summary:
+   - Acidic pKa values: 2.97, 8.99
+   
+   Ionization at pH 7.4: acid, charge -1
+   - Dominant form: O=C([O-])c1ccccc1O
+   - Ambiguous (pKa near pH): Yes
+   
+   LogD at pH 7.4: -3.34
+   
+   Solubility: logS = -1.17 log(mol/L)

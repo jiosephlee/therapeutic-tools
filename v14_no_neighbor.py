@@ -21,9 +21,9 @@ from .v14 import (
 
 GET_FEATURES_TOOL: Dict[str, Any] = copy.deepcopy(_V14_GET_FEATURES_TOOL)
 GET_FEATURES_TOOL["function"]["description"] = (
-    "Return requested molecular features for a SMILES string (v14 no-neighbor: same "
-    "vocabulary as v14 — v12 base minus metabolites plus neutral fraction, Labute ASA, "
-    "NOCount, and carbocycle counts; neighbor / similarity tools are not available)."
+    "Analyze a molecule and return selected medicinal-chemistry features, including "
+    "physicochemical properties, ionization-related values, structural features, "
+    "safety-relevant signals, and additional surface-area or carbocycle descriptors."
 )
 
 __all__ = [

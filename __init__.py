@@ -101,6 +101,42 @@ from .v14_no_neighbor import (
     GET_FEATURES_TOOL as V14_NO_NEIGHBOR_GET_FEATURES_TOOL,
     FEATURE_NAMES as V14_NO_NEIGHBOR_FEATURE_NAMES,
 )
+from .v14_consolidated import (
+    get_features as v14_consolidated_get_features,
+    get_neighbors as v14_consolidated_get_neighbors,
+)
+from .v14_consolidated import (
+    GET_FEATURES_TOOL as V14_CONSOLIDATED_GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL as V14_CONSOLIDATED_GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V14_CONSOLIDATED_FEATURE_NAMES,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V14_CONSOLIDATED_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V14_CONSOLIDATED_TASK_NEIGHBOR_CALLABLES,
+)
+from .v14_consolidated_no_neighbor import (
+    get_features as v14_consolidated_no_neighbor_get_features,
+)
+from .v14_consolidated_no_neighbor import (
+    GET_FEATURES_TOOL as V14_CONSOLIDATED_NO_NEIGHBOR_GET_FEATURES_TOOL,
+    FEATURE_NAMES as V14_CONSOLIDATED_NO_NEIGHBOR_FEATURE_NAMES,
+)
+from .v16 import (
+    get_features as v16_get_features,
+    get_neighbors as v16_get_neighbors,
+)
+from .v16 import (
+    GET_FEATURES_TOOL as V16_GET_FEATURES_TOOL,
+    GET_NEIGHBORS_TOOL as V16_GET_NEIGHBORS_TOOL,
+    FEATURE_NAMES as V16_FEATURE_NAMES,
+    TASK_NEIGHBOR_TOOL_SCHEMAS as V16_TASK_NEIGHBOR_TOOL_SCHEMAS,
+    TASK_NEIGHBOR_CALLABLES as V16_TASK_NEIGHBOR_CALLABLES,
+)
+from .v16_no_neighbor import (
+    get_features as v16_no_neighbor_get_features,
+)
+from .v16_no_neighbor import (
+    GET_FEATURES_TOOL as V16_NO_NEIGHBOR_GET_FEATURES_TOOL,
+    FEATURE_NAMES as V16_NO_NEIGHBOR_FEATURE_NAMES,
+)
 from .v15 import get_mol_properties_and_fg, compare_similar_mols
 from .v15 import (
     GET_MOL_PROPERTIES_AND_FG_TOOL as V15_GET_MOL_PROPERTIES_AND_FG_TOOL,
