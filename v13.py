@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from .display_names import get_display_name
 from .similarity import TASKS, TASK_ALIASES
 from .v11 import (
     _compute_complexity,
@@ -112,15 +113,19 @@ def _compute_top20_values(smiles: str) -> Dict[str, float]:
 def _format_descriptor_line(name: str, value: float) -> str:
     desc_map = _load_descriptor_descriptions()
     desc = desc_map.get(name, "")
+    title = desc or get_display_name(name)
     if value is None or (isinstance(value, float) and (np.isnan(value) or not np.isfinite(value))):
         value_str = "n/a"
     elif isinstance(value, float):
         value_str = f"{value:.4f}"
     else:
         value_str = str(value)
-    if desc:
-        return f"{name}:\n- value: {value_str}\n- description: {desc}"
-    return f"{name}:\n- value: {value_str}"
+    lines = [f"{title}:", f"- value: {value_str}"]
+    if title != name:
+        lines.append(f"- internal feature name: {name}")
+    if desc and desc != title:
+        lines.append(f"- description: {desc}")
+    return "\n".join(lines)
 
 
 def _make_descriptor_compute_fn(name: str):
@@ -339,13 +344,14 @@ GET_FEATURES_TOOL: Dict[str, Any] = {
             "properties": {
                 "smiles": {
                     "type": "string",
-                    "description": "Input molecule as a SMILES string.",
+                    "description": "Molecule to analyze, provided as a SMILES string.",
                 },
                 "feature_names": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": (
-                        "List of feature names to return for the molecule."
+                        "Feature names to inspect for the molecule, including grouped properties "
+                        "and supported descriptor names."
                     ),
                 },
             },
@@ -360,29 +366,29 @@ GET_NEIGHBORS_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_neighbors",
         "description": (
-            "Find nearest training-set neighbors for a molecule by fingerprint similarity. "
-            "Returns neighbor SMILES, similarity scores, task labels, and optionally "
-            "computes selected molecular features for each neighbor."
+            "Retrieve close analogs for a molecule within a specified prediction task. "
+            "Use this to compare the query molecule against similar compounds, inspect "
+            "their labels, and optionally review selected features or descriptor values for each analog."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "smiles": {
                     "type": "string",
-                    "description": "Input molecule as a SMILES string.",
+                    "description": "Query molecule, provided as a SMILES string.",
                 },
                 "task_name": {
                     "type": "string",
-                    "description": "TDC task name (e.g. 'AMES', 'DILI', 'hERG').",
+                    "description": "Prediction task or assay context, for example AMES, DILI, or hERG.",
                 },
                 "feature_names": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional list of feature categories or RDKit descriptor names to compute for each neighbor.",
+                    "description": "Optional feature groups or descriptor names to compute for each retrieved analog.",
                 },
                 "include_labels": {
                     "type": "boolean",
-                    "description": "Whether to include task labels for neighbors. Default true.",
+                    "description": "Whether to include observed task labels for the retrieved analogs. Default true.",
                 },
             },
             "required": ["smiles", "task_name"],
@@ -403,25 +409,25 @@ def _make_task_neighbors_tool_schema(task: str) -> Dict[str, Any]:
         "function": {
             "name": f"get_neighbors_{alias}",
             "description": (
-                f"Find nearest neighbors from the {task} training set with labels, "
-                "similarity scores, and optionally compute selected molecular features "
-                "for each neighbor."
+                f"Retrieve close analogs for a molecule within the {task} prediction task. "
+                "Use this to compare the query against similar compounds from the same task, "
+                "inspect their labels, and optionally review selected features or descriptor values for each analog."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "smiles": {
                         "type": "string",
-                        "description": "Input molecule as a SMILES string.",
+                        "description": "Query molecule, provided as a SMILES string.",
                     },
                     "feature_names": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Optional list of feature categories or RDKit descriptor names to compute for each neighbor.",
+                        "description": "Optional feature groups or descriptor names to compute for each retrieved analog.",
                     },
                     "include_labels": {
                         "type": "boolean",
-                        "description": "Whether to include task labels for neighbors. Default true.",
+                        "description": "Whether to include observed task labels for the retrieved analogs. Default true.",
                     },
                 },
                 "required": ["smiles"],

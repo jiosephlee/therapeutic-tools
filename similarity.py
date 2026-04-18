@@ -553,6 +553,7 @@ def _label_str(label) -> str:
 def _get_key_properties(smiles: str) -> Optional[str]:
     """Return MW, logP, TPSA for a neighbor molecule. Compute if not cached."""
     from . import metadata_cache
+    from .display_names import get_display_name
     cached = metadata_cache.lookup_row(smiles)
 
     try:
@@ -578,7 +579,11 @@ def _get_key_properties(smiles: str) -> Optional[str]:
         else:
             tpsa = rdMolDescriptors.CalcTPSA(mol)
 
-        return f"MW={mw:.1f}, logP={logp:.2f}, TPSA={tpsa:.1f}"
+        return (
+            f"{get_display_name('MolWt')}={mw:.1f} Da, "
+            f"{get_display_name('MolLogP')}={logp:.2f}, "
+            f"{get_display_name('TPSA')}={tpsa:.1f} A^2"
+        )
     except Exception:
         return None
 
@@ -662,15 +667,19 @@ TOOL_SCHEMA: Dict[str, Any] = {
     "type": "function",
     "function": {
         "name": "find_similar_molecules",
-        "description": "Find K nearest neighbors from training set with labels, properties, and contrastive opposite-label example.",
+        "description": (
+            "Retrieve close analogs for a molecule within a specified prediction task, "
+            "including labels, property summaries, and a contrastive analog with the opposite label when available."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string"},
-                "task": {"type": "string", "description": "Task name (e.g. 'AMES', 'DILI')."},
+                "smiles": {"type": "string", "description": "Query molecule, provided as a SMILES string."},
+                "task": {"type": "string", "description": "Prediction task or assay context, for example AMES or DILI."},
                 "k": {"type": "integer", "description": "Number of neighbors (default: 5)."},
                 "embedding_type": {
                     "type": "string",
+                    "description": "Similarity backend to use: learned embeddings or fingerprint-based similarity.",
                     "enum": ["learned", "fingerprint"],
                 },
             },
@@ -730,11 +739,14 @@ def _make_task_tool_schema(task: str) -> Dict[str, Any]:
         "type": "function",
         "function": {
             "name": f"find_similar_molecules_{alias}",
-            "description": f"Find nearest neighbors from {task} training set with labels and contrastive example.",
+            "description": (
+                f"Retrieve close analogs for a molecule within the {task} prediction task, "
+                "including labels and a contrastive analog when available."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "smiles": {"type": "string"},
+                    "smiles": {"type": "string", "description": "Query molecule, provided as a SMILES string."},
                 },
                 "required": ["smiles"],
             }

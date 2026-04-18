@@ -1,0 +1,305 @@
+Therapeutic tool outputs for v15
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_mol_properties_and_fg ===
+Molecular weight: 180.16
+logP: 1.31
+TPSA: 63.60
+Molar refractivity: 44.71
+Fraction CSP3: 0.11
+QED: 0.55
+Heavy atom count: 13
+H-bond donor count: 1
+H-bond acceptor count: 3
+Rotatable bond count: 2
+Ring count: 1
+Aromatic ring count: 1
+Formal charge: 0
+Heteroatom count: 4
+Labute ASA: 74.76
+Max abs partial charge: 0.478
+Min abs partial charge: 0.339
+Max EState index: 10.61
+Min EState index: -1.11
+Aromatic atom count: 6
+Fraction aromatic atoms: 0.46
+Positive charge atom count: 0
+Negative charge atom count: 0
+Aliphatic ring count: 0
+Saturated ring count: 0
+Heterocycle count: 0
+Aromatic heterocycle count: 0
+Aliphatic heterocycle count: 0
+Saturated heterocycle count: 0
+Amide bond count: 0
+Bertz complexity: 343.22
+Balaban J: 3.04
+Hall-Kier alpha: -1.84
+Strongest basic pKa: not applicable (no basic site)
+Strongest acidic pKa: 3.39
+logD (pH 7.4): -2.70
+
+Present functional groups:
+benzene: 1
+carboxylic acid: 1
+carboxylic ester: 1
+
+=== compare_similar_mols ===
+Local analog evidence for task AMES
+Definitions: query = input molecule values, neighbor = retrieved training-set analog values, delta = neighbor - query.
+Query SMILES: CC(=O)Oc1ccccc1C(=O)O
+
+Positive neighbors:
+1. O=C(O)c1ccccc1[N+](=O)[O-] | similarity=0.383 | label=B
+  Molecular weight: neighbor=167.12 | query=180.16 | delta=-13.04
+  logP: neighbor=1.29 | query=1.31 | delta=-0.02
+  TPSA: neighbor=80.44 | query=63.60 | delta=16.84
+  Molar refractivity: neighbor=40.06 | query=44.71 | delta=-4.65
+  Fraction CSP3: neighbor=0.00 | query=0.11 | delta=-0.11
+  QED: neighbor=0.53 | query=0.55 | delta=-0.02
+  Heavy atom count: neighbor=12 | query=13 | delta=-1
+  H-bond donor count: neighbor=1 | query=1 | delta=0
+  H-bond acceptor count: neighbor=3 | query=3 | delta=0
+  Rotatable bond count: neighbor=2 | query=2 | delta=0
+  Ring count: neighbor=1 | query=1 | delta=0
+  Aromatic ring count: neighbor=1 | query=1 | delta=0
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=5 | query=4 | delta=1
+  Labute ASA: neighbor=67.41 | query=74.76 | delta=-7.35
+  Max abs partial charge: neighbor=0.477 | query=0.478 | delta=-0.001
+  Min abs partial charge: neighbor=0.342 | query=0.339 | delta=0.003
+  Max EState index: neighbor=10.42 | query=10.61 | delta=-0.19
+  Min EState index: neighbor=-1.29 | query=-1.11 | delta=-0.18
+  Aromatic atom count: neighbor=6 | query=6 | delta=0
+  Fraction aromatic atoms: neighbor=0.50 | query=0.46 | delta=0.04
+  Positive charge atom count: neighbor=1 | query=0 | delta=1
+  Negative charge atom count: neighbor=1 | query=0 | delta=1
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=0 | query=0 | delta=0
+  Bertz complexity: neighbor=300.93 | query=343.22 | delta=-42.29
+  Balaban J: neighbor=3.27 | query=3.04 | delta=0.22
+  Hall-Kier alpha: neighbor=-1.91 | query=-1.84 | delta=-0.07
+  Strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=2.49 | query=3.39 | delta=-0.90
+  logD (pH 7.4): neighbor=-3.62 | query=-2.70 | delta=-0.92
+  Functional-group differences:
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+    nitro: neighbor=1 | query=0 | delta=1
+2. CN(C)c1ccc(N=Nc2ccccc2C(=O)O)cc1 | similarity=0.373 | label=B
+  Molecular weight: neighbor=269.30 | query=180.16 | delta=89.14
+  logP: neighbor=3.87 | query=1.31 | delta=2.56
+  TPSA: neighbor=65.26 | query=63.60 | delta=1.66
+  Molar refractivity: neighbor=78.35 | query=44.71 | delta=33.64
+  Fraction CSP3: neighbor=0.13 | query=0.11 | delta=0.02
+  QED: neighbor=0.86 | query=0.55 | delta=0.31
+  Heavy atom count: neighbor=20 | query=13 | delta=7
+  H-bond donor count: neighbor=1 | query=1 | delta=0
+  H-bond acceptor count: neighbor=4 | query=3 | delta=1
+  Rotatable bond count: neighbor=4 | query=2 | delta=2
+  Ring count: neighbor=2 | query=1 | delta=1
+  Aromatic ring count: neighbor=2 | query=1 | delta=1
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=5 | query=4 | delta=1
+  Labute ASA: neighbor=116.75 | query=74.76 | delta=41.99
+  Max abs partial charge: neighbor=0.478 | query=0.478 | delta=0.000
+  Min abs partial charge: neighbor=0.337 | query=0.339 | delta=-0.002
+  Max EState index: neighbor=11.05 | query=10.61 | delta=0.43
+  Min EState index: neighbor=-1.01 | query=-1.11 | delta=0.10
+  Aromatic atom count: neighbor=12 | query=6 | delta=6
+  Fraction aromatic atoms: neighbor=0.60 | query=0.46 | delta=0.14
+  Positive charge atom count: neighbor=0 | query=0 | delta=0
+  Negative charge atom count: neighbor=0 | query=0 | delta=0
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=0 | query=0 | delta=0
+  Bertz complexity: neighbor=633.82 | query=343.22 | delta=290.60
+  Balaban J: neighbor=2.23 | query=3.04 | delta=-0.81
+  Hall-Kier alpha: neighbor=-2.69 | query=-1.84 | delta=-0.85
+  Strongest basic pKa: neighbor=5.34 | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=3.59 | query=3.39 | delta=0.20
+  logD (pH 7.4): neighbor=0.06 | query=-2.70 | delta=2.76
+  Functional-group differences:
+    azo: neighbor=1 | query=0 | delta=1
+    benzene: neighbor=0 | query=1 | delta=-1
+    benzene (x2): neighbor=1 | query=0 | delta=1
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+    tertiary mixed amine: neighbor=1 | query=0 | delta=1
+3. Cc1cccc(C(=O)O)c1[N+](=O)[O-] | similarity=0.358 | label=B
+  Molecular weight: neighbor=181.15 | query=180.16 | delta=0.99
+  logP: neighbor=1.60 | query=1.31 | delta=0.29
+  TPSA: neighbor=80.44 | query=63.60 | delta=16.84
+  Molar refractivity: neighbor=44.79 | query=44.71 | delta=0.08
+  Fraction CSP3: neighbor=0.12 | query=0.11 | delta=0.01
+  QED: neighbor=0.55 | query=0.55 | delta=0.00
+  Heavy atom count: neighbor=13 | query=13 | delta=0
+  H-bond donor count: neighbor=1 | query=1 | delta=0
+  H-bond acceptor count: neighbor=3 | query=3 | delta=0
+  Rotatable bond count: neighbor=2 | query=2 | delta=0
+  Ring count: neighbor=1 | query=1 | delta=0
+  Aromatic ring count: neighbor=1 | query=1 | delta=0
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=5 | query=4 | delta=1
+  Labute ASA: neighbor=73.77 | query=74.76 | delta=-0.99
+  Max abs partial charge: neighbor=0.477 | query=0.478 | delta=-0.001
+  Min abs partial charge: neighbor=0.342 | query=0.339 | delta=0.003
+  Max EState index: neighbor=10.57 | query=10.61 | delta=-0.04
+  Min EState index: neighbor=-1.28 | query=-1.11 | delta=-0.17
+  Aromatic atom count: neighbor=6 | query=6 | delta=0
+  Fraction aromatic atoms: neighbor=0.46 | query=0.46 | delta=0.00
+  Positive charge atom count: neighbor=1 | query=0 | delta=1
+  Negative charge atom count: neighbor=1 | query=0 | delta=1
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=0 | query=0 | delta=0
+  Bertz complexity: neighbor=372.41 | query=343.22 | delta=29.18
+  Balaban J: neighbor=3.43 | query=3.04 | delta=0.38
+  Hall-Kier alpha: neighbor=-1.91 | query=-1.84 | delta=-0.07
+  Strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=2.88 | query=3.39 | delta=-0.51
+  logD (pH 7.4): neighbor=-2.92 | query=-2.70 | delta=-0.22
+  Functional-group differences:
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+    nitro: neighbor=1 | query=0 | delta=1
+
+Negative neighbors:
+1. CC(=O)Oc1ccccc1C(=O)Oc1ccccc1C(=O)O | similarity=0.843 | label=A
+  Molecular weight: neighbor=300.27 | query=180.16 | delta=120.11
+  logP: neighbor=2.53 | query=1.31 | delta=1.22
+  TPSA: neighbor=89.90 | query=63.60 | delta=26.30
+  Molar refractivity: neighbor=76.11 | query=44.71 | delta=31.40
+  Fraction CSP3: neighbor=0.06 | query=0.11 | delta=-0.05
+  QED: neighbor=0.69 | query=0.55 | delta=0.14
+  Heavy atom count: neighbor=22 | query=13 | delta=9
+  H-bond donor count: neighbor=1 | query=1 | delta=0
+  H-bond acceptor count: neighbor=5 | query=3 | delta=2
+  Rotatable bond count: neighbor=4 | query=2 | delta=2
+  Ring count: neighbor=2 | query=1 | delta=1
+  Aromatic ring count: neighbor=2 | query=1 | delta=1
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=6 | query=4 | delta=2
+  Labute ASA: neighbor=125.45 | query=74.76 | delta=50.69
+  Max abs partial charge: neighbor=0.478 | query=0.478 | delta=0.000
+  Min abs partial charge: neighbor=0.347 | query=0.339 | delta=0.008
+  Max EState index: neighbor=12.19 | query=10.61 | delta=1.57
+  Min EState index: neighbor=-1.21 | query=-1.11 | delta=-0.10
+  Aromatic atom count: neighbor=12 | query=6 | delta=6
+  Fraction aromatic atoms: neighbor=0.55 | query=0.46 | delta=0.08
+  Positive charge atom count: neighbor=0 | query=0 | delta=0
+  Negative charge atom count: neighbor=0 | query=0 | delta=0
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=0 | query=0 | delta=0
+  Bertz complexity: neighbor=734.92 | query=343.22 | delta=391.70
+  Balaban J: neighbor=2.31 | query=3.04 | delta=-0.74
+  Hall-Kier alpha: neighbor=-3.15 | query=-1.84 | delta=-1.31
+  Strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=3.11 | query=3.39 | delta=-0.28
+  logD (pH 7.4): neighbor=-1.76 | query=-2.70 | delta=0.94
+  Functional-group differences:
+    benzene: neighbor=0 | query=1 | delta=-1
+    benzene (x2): neighbor=1 | query=0 | delta=1
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+    carboxylic ester (x2): neighbor=1 | query=0 | delta=1
+2. O=C(O)c1ccccc1C(=O)O | similarity=0.520 | label=A
+  Molecular weight: neighbor=166.13 | query=180.16 | delta=-14.03
+  logP: neighbor=1.08 | query=1.31 | delta=-0.23
+  TPSA: neighbor=74.60 | query=63.60 | delta=11.00
+  Molar refractivity: neighbor=40.36 | query=44.71 | delta=-4.35
+  Fraction CSP3: neighbor=0.00 | query=0.11 | delta=-0.11
+  QED: neighbor=0.69 | query=0.55 | delta=0.14
+  Heavy atom count: neighbor=12 | query=13 | delta=-1
+  H-bond donor count: neighbor=2 | query=1 | delta=1
+  H-bond acceptor count: neighbor=2 | query=3 | delta=-1
+  Rotatable bond count: neighbor=2 | query=2 | delta=0
+  Ring count: neighbor=1 | query=1 | delta=0
+  Aromatic ring count: neighbor=1 | query=1 | delta=0
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=4 | query=4 | delta=0
+  Labute ASA: neighbor=68.07 | query=74.76 | delta=-6.69
+  Max abs partial charge: neighbor=0.478 | query=0.478 | delta=0.000
+  Min abs partial charge: neighbor=0.336 | query=0.339 | delta=-0.003
+  Max EState index: neighbor=10.46 | query=10.61 | delta=-0.15
+  Min EState index: neighbor=-1.23 | query=-1.11 | delta=-0.11
+  Aromatic atom count: neighbor=6 | query=6 | delta=0
+  Fraction aromatic atoms: neighbor=0.50 | query=0.46 | delta=0.04
+  Positive charge atom count: neighbor=0 | query=0 | delta=0
+  Negative charge atom count: neighbor=0 | query=0 | delta=0
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=0 | query=0 | delta=0
+  Bertz complexity: neighbor=296.58 | query=343.22 | delta=-46.64
+  Balaban J: neighbor=3.27 | query=3.04 | delta=0.22
+  Hall-Kier alpha: neighbor=-1.84 | query=-1.84 | delta=0.00
+  Strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=3.21 | query=3.39 | delta=-0.18
+  logD (pH 7.4): neighbor=-3.11 | query=-2.70 | delta=-0.41
+  Functional-group differences:
+    carboxylic acid: neighbor=0 | query=1 | delta=-1
+    carboxylic acid (x2): neighbor=1 | query=0 | delta=1
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+3. CC(=O)Nc1ccc(OC(=O)c2ccccc2OC(C)=O)cc1 | similarity=0.488 | label=A
+  Molecular weight: neighbor=313.31 | query=180.16 | delta=133.15
+  logP: neighbor=2.79 | query=1.31 | delta=1.48
+  TPSA: neighbor=81.70 | query=63.60 | delta=18.10
+  Molar refractivity: neighbor=83.46 | query=44.71 | delta=38.75
+  Fraction CSP3: neighbor=0.12 | query=0.11 | delta=0.01
+  QED: neighbor=0.69 | query=0.55 | delta=0.14
+  Heavy atom count: neighbor=23 | query=13 | delta=10
+  H-bond donor count: neighbor=1 | query=1 | delta=0
+  H-bond acceptor count: neighbor=5 | query=3 | delta=2
+  Rotatable bond count: neighbor=4 | query=2 | delta=2
+  Ring count: neighbor=2 | query=1 | delta=1
+  Aromatic ring count: neighbor=2 | query=1 | delta=1
+  Formal charge: neighbor=0 | query=0 | delta=0
+  Heteroatom count: neighbor=6 | query=4 | delta=2
+  Labute ASA: neighbor=132.57 | query=74.76 | delta=57.81
+  Max abs partial charge: neighbor=0.426 | query=0.478 | delta=-0.052
+  Min abs partial charge: neighbor=0.347 | query=0.339 | delta=0.008
+  Max EState index: neighbor=12.20 | query=10.61 | delta=1.58
+  Min EState index: neighbor=-0.64 | query=-1.11 | delta=0.47
+  Aromatic atom count: neighbor=12 | query=6 | delta=6
+  Fraction aromatic atoms: neighbor=0.52 | query=0.46 | delta=0.06
+  Positive charge atom count: neighbor=0 | query=0 | delta=0
+  Negative charge atom count: neighbor=0 | query=0 | delta=0
+  Aliphatic ring count: neighbor=0 | query=0 | delta=0
+  Saturated ring count: neighbor=0 | query=0 | delta=0
+  Heterocycle count: neighbor=0 | query=0 | delta=0
+  Aromatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Aliphatic heterocycle count: neighbor=0 | query=0 | delta=0
+  Saturated heterocycle count: neighbor=0 | query=0 | delta=0
+  Amide bond count: neighbor=1 | query=0 | delta=1
+  Bertz complexity: neighbor=736.90 | query=343.22 | delta=393.68
+  Balaban J: neighbor=2.13 | query=3.04 | delta=-0.92
+  Hall-Kier alpha: neighbor=-3.15 | query=-1.84 | delta=-1.31
+  Strongest basic pKa: neighbor=4.18 | query=not applicable (no basic site) | delta=not applicable (no basic site)
+  Strongest acidic pKa: neighbor=13.80 | query=3.39 | delta=10.41
+  logD (pH 7.4): neighbor=2.79 | query=-2.70 | delta=5.49
+  Functional-group differences:
+    benzene: neighbor=0 | query=1 | delta=-1
+    benzene (x2): neighbor=1 | query=0 | delta=1
+    carboxylic acid: neighbor=0 | query=1 | delta=-1
+    carboxylic ester: neighbor=0 | query=1 | delta=-1
+    carboxylic ester (x2): neighbor=1 | query=0 | delta=1
+    secondary amide: neighbor=1 | query=0 | delta=1

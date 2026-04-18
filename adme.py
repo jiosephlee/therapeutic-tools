@@ -76,7 +76,7 @@ def _format_pka_section(smiles: str, pka_data: dict, simple: bool = False) -> st
     base_sites = pka_data.get("base_sites")
 
     if not simple:
-        lines = ["pKa Prediction (via ML, MolGpKa):"]
+        lines = ["pKa Prediction:"]
         if acid_sites:
             site_strs = [f"atom {atom} pKa = {pka:.2f}" for atom, pka in sorted(acid_sites.items(), key=lambda x: x[1])]
             lines.append(f"  Acidic sites ({len(acid_sites)}): {', '.join(site_strs)}")
@@ -94,7 +94,7 @@ def _format_pka_section(smiles: str, pka_data: dict, simple: bool = False) -> st
             lines.append("  No basic sites.")
         return "\n".join(lines)
 
-    lines = ["pKa Summary (via ML, MolGpKa):"]
+    lines = ["pKa Summary:"]
     if base_sites:
         base_str = ", ".join(f"{pka:.2f}" for _, pka in sorted(base_sites.items(), key=lambda x: -x[1]))
         lines.append(f"- Basic pKa values: {base_str}")
@@ -155,7 +155,7 @@ def _compact_ionization(smiles: str, ph: float = 7.4) -> str:
     is_ambiguous = len(net_charges) > 1
 
     lines = [
-        f"Ionization at pH {ph} (via SMARTS table, Dimorphite-DL): {representative['charge_class']}, charge {representative['net_charge']}",
+        f"Ionization at pH {ph}: {representative['charge_class']}, charge {representative['net_charge']}",
         f"- Dominant form: {representative['smiles']}",
         f"- Ambiguous (pKa near pH): {'Yes' if is_ambiguous else 'No'}",
     ]

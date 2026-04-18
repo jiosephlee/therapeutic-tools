@@ -321,13 +321,14 @@ GET_MOLECULAR_PROPERTIES_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_molecular_properties",
         "description": (
-            "Returns molecular properties including molecular weight, TPSA, LogP, functional groups, ring systems, pka, 3D shape, "
-            "structural alerts, and the top predicted metabolite."
+            "Analyze a molecule and return a broad medicinal-chemistry summary, "
+            "including core properties, functional groups, ring systems, ionization-related "
+            "properties, 3D shape descriptors, safety signals, and a top metabolite prediction."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "Input molecule as a SMILES string."},
+                "smiles": {"type": "string", "description": "Molecule to analyze, provided as a SMILES string."},
             },
             "required": ["smiles"],
             "additionalProperties": False,
@@ -341,17 +342,17 @@ GET_SIMILAR_NEIGHBORS_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_similar_neighbors",
         "description": (
-            "Find nearest training-set neighbors and one contrastive example. "
-            "Returns only SMILES, similarity scores, labels, and KNN confidence metrics."
+            "Retrieve close analogs for a molecule within a specified prediction task, "
+            "together with a contrastive analog and neighborhood confidence signals."
         ),
         "parameters": {
             "type": "object",
             "properties": {
-                "smiles": {"type": "string", "description": "Input molecule as a SMILES string."},
-                "task": {"type": "string", "description": "Task name (for example 'AMES' or 'DILI')."},
+                "smiles": {"type": "string", "description": "Query molecule, provided as a SMILES string."},
+                "task": {"type": "string", "description": "Prediction task or assay context, for example AMES or DILI."},
                 "embedding_type": {
                     "type": "string",
-                    "description": "Similarity backend to use: learned embeddings or fingerprint Tanimoto.",
+                    "description": "Similarity backend to use: learned embeddings or fingerprint-based similarity.",
                     "enum": ["learned", "fingerprint"],
                 },
             },
@@ -375,13 +376,13 @@ def _make_task_neighbors_tool_schema(task: str) -> Dict[str, Any]:
         "function": {
             "name": f"get_similar_neighbors_{alias}",
             "description": (
-                f"Find nearest neighbors from the {task} training set with labels, "
-                "similarity scores, KNN confidence metrics, and one contrastive example."
+                f"Retrieve close analogs for a molecule within the {task} prediction task, "
+                "together with a contrastive analog and neighborhood confidence signals."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "smiles": {"type": "string", "description": "Input molecule as a SMILES string."},
+                    "smiles": {"type": "string", "description": "Query molecule, provided as a SMILES string."},
                 },
                 "required": ["smiles"],
                 "additionalProperties": False,
