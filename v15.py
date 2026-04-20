@@ -70,27 +70,38 @@ def _compare_tool_description(task: str | None) -> str:
 
 
 def build_openai_agent_tool_schemas(*, task: str | None = None) -> list[dict[str, object]]:
+    """Return v15 tool schemas in nested OpenAI form.
+
+    Shape: ``{"type": "function", "function": {"name": ..., "parameters": ...}}``.
+    The gpt-oss harmony Jinja chat template indexes ``tool.function.name``; a flat
+    shape (``{"type": "function", "name": ...}``) raises
+    ``UndefinedError: 'dict object' has no attribute 'function'`` during render.
+    """
     shared_parameters = _smiles_only_parameters()
     return [
         {
             "type": "function",
-            "name": "get_mol_properties_and_fg",
-            "description": (
-                "Return plain-text single-molecule property evidence. The tool outputs one line per "
-                "dense property in 'display_name: value' form for the 36 default dense properties, "
-                "followed by the molecule's present functional groups and their counts. When the "
-                "strongest acidic pKa or strongest basic pKa is undefined, the text explicitly says "
-                "'not applicable (no acidic/basic site)'."
-            ),
-            "parameters": deepcopy(shared_parameters),
-            "strict": True,
+            "function": {
+                "name": "get_mol_properties_and_fg",
+                "description": (
+                    "Return plain-text single-molecule property evidence. The tool outputs one line per "
+                    "dense property in 'display_name: value' form for the 36 default dense properties, "
+                    "followed by the molecule's present functional groups and their counts. When the "
+                    "strongest acidic pKa or strongest basic pKa is undefined, the text explicitly says "
+                    "'not applicable (no acidic/basic site)'."
+                ),
+                "parameters": deepcopy(shared_parameters),
+                "strict": True,
+            },
         },
         {
             "type": "function",
-            "name": "compare_similar_mols",
-            "description": _compare_tool_description(task),
-            "parameters": deepcopy(shared_parameters),
-            "strict": True,
+            "function": {
+                "name": "compare_similar_mols",
+                "description": _compare_tool_description(task),
+                "parameters": deepcopy(shared_parameters),
+                "strict": True,
+            },
         },
     ]
 
