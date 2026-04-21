@@ -142,7 +142,6 @@ from .v15 import get_mol_properties_and_fg, compare_similar_mols
 from .v15 import (
     GET_MOL_PROPERTIES_AND_FG_TOOL as V15_GET_MOL_PROPERTIES_AND_FG_TOOL,
     COMPARE_SIMILAR_MOLS_TOOL as V15_COMPARE_SIMILAR_MOLS_TOOL,
-    TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS as V15_TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS,
 )
 from .v15_no_neighbor import get_mol_properties_and_fg as v15_no_neighbor_get_mol_properties_and_fg
 from .v15_no_neighbor import (
@@ -151,7 +150,6 @@ from .v15_no_neighbor import (
 from .v15_neighbor_only import compare_similar_mols as v15_neighbor_only_compare_similar_mols
 from .v15_neighbor_only import (
     COMPARE_SIMILAR_MOLS_TOOL as V15_NEIGHBOR_ONLY_COMPARE_SIMILAR_MOLS_TOOL,
-    TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS as V15_NEIGHBOR_ONLY_TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS,
 )
 
 

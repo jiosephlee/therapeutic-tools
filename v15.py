@@ -16,9 +16,7 @@ import os
 import sys
 from copy import deepcopy
 from functools import lru_cache
-from typing import Dict, Optional
-
-from .similarity import TASKS
+from typing import Optional
 
 _DEFAULT_TRIM_ROOT = "/vast/projects/myatskar/design-documents/joseph/trim"
 
@@ -57,11 +55,9 @@ def _smiles_only_parameters() -> dict[str, object]:
     }
 
 
-def _compare_tool_description(task: str | None) -> str:
-    task_scope = f" for task {task}" if task else " for the current task"
+def _compare_tool_description() -> str:
     return (
-        "Retrieve text-form local analog evidence"
-        f"{task_scope}. The input SMILES must belong to that task dataset so the tool can identify "
+        "Retrieve text-form local analog evidence. The input SMILES must belong to the active task dataset so the tool can identify "
         "the query split and retrieve the nearest training-set neighbors. The tool returns plain text "
         "with a short definition of query/neighbor/delta, then positive and negative neighbors "
         "(typically 3 positive and 3 negative, depending on the active manifest), each with "
@@ -69,7 +65,7 @@ def _compare_tool_description(task: str | None) -> str:
     )
 
 
-def build_openai_agent_tool_schemas(*, task: str | None = None) -> list[dict[str, object]]:
+def build_openai_agent_tool_schemas() -> list[dict[str, object]]:
     """Return v15 tool schemas in nested OpenAI form.
 
     Shape: ``{"type": "function", "function": {"name": ..., "parameters": ...}}``.
@@ -98,7 +94,7 @@ def build_openai_agent_tool_schemas(*, task: str | None = None) -> list[dict[str
             "type": "function",
             "function": {
                 "name": "compare_similar_mols",
-                "description": _compare_tool_description(task),
+                "description": _compare_tool_description(),
                 "parameters": deepcopy(shared_parameters),
                 "strict": True,
             },
@@ -109,9 +105,6 @@ def build_openai_agent_tool_schemas(*, task: str | None = None) -> list[dict[str
 OPENAI_AGENT_TOOL_SCHEMAS = build_openai_agent_tool_schemas()
 GET_MOL_PROPERTIES_AND_FG_TOOL = deepcopy(OPENAI_AGENT_TOOL_SCHEMAS[0])
 COMPARE_SIMILAR_MOLS_TOOL = deepcopy(OPENAI_AGENT_TOOL_SCHEMAS[1])
-TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS: Dict[str, Dict[str, object]] = {
-    task: build_openai_agent_tool_schemas(task=task)[1] for task in TASKS
-}
 
 
 def get_mol_properties_and_fg(smiles: str, task: Optional[str] = None) -> str:
@@ -135,7 +128,6 @@ __all__ = [
     "COMPARE_SIMILAR_MOLS_TOOL",
     "GET_MOL_PROPERTIES_AND_FG_TOOL",
     "OPENAI_AGENT_TOOL_SCHEMAS",
-    "TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS",
     "build_openai_agent_tool_schemas",
     "compare_similar_mols",
     "get_mol_properties_and_fg",
