@@ -12,6 +12,8 @@ feature buckets while preserving the same underlying v14 evidence surface:
 
 from __future__ import annotations
 
+import math
+import re
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -35,6 +37,22 @@ FEATURE_NAMES: List[str] = [
     "structure_and_topology",
     "alert_screening",
 ]
+
+FEATURE_GROUP_DESCRIPTIONS: Dict[str, str] = {
+    "molecular_profile": (
+        "molecular size, polarity, lipophilicity, hydrogen-bonding, complexity, "
+        "electronic properties, and PMI-based 3D shape"
+    ),
+    "ionization_and_solubility": (
+        "pKa, ionization state at pH 7.4, logD, and aqueous solubility"
+    ),
+    "structure_and_topology": (
+        "functional groups, ring systems, aromaticity, and topology summaries"
+    ),
+    "alert_screening": (
+        "structural-alert and liability-screening categories"
+    ),
+}
 
 _FEATURE_ALIASES: Dict[str, List[str]] = {
     "molecularprofile": ["molecular_profile"],
@@ -77,6 +95,367 @@ def _normalize_name(name: str) -> str:
 
 def _join_sections(*sections: str) -> str:
     return "\n\n".join(section for section in sections if section)
+
+
+def _feature_names_description_text() -> str:
+    return (
+        "Feature groups to include: "
+        "molecular_profile, ionization_and_solubility, "
+        "structure_and_topology, alert_screening."
+    )
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(numeric):
+        return None
+    return numeric
+
+
+def _format_scalar(value: Any, *, decimals: int = 2, unit: str = "") -> str:
+    numeric = _safe_float(value)
+    if numeric is None:
+        return "n/a"
+    if decimals == 0:
+        base = str(int(round(numeric)))
+    else:
+        base = f"{numeric:.{decimals}f}"
+    return f"{base}{unit}"
+
+
+def _format_delta(neighbor_value: Any, query_value: Any, *, decimals: int = 2, unit: str = "") -> str:
+    neighbor_numeric = _safe_float(neighbor_value)
+    query_numeric = _safe_float(query_value)
+    if neighbor_numeric is None or query_numeric is None:
+        return "n/a"
+    delta = neighbor_numeric - query_numeric
+    if decimals == 0:
+        base = str(int(round(delta)))
+    else:
+        base = f"{delta:.{decimals}f}"
+    if delta > 0:
+        base = f"+{base}"
+    return f"{base}{unit}"
+
+
+def _metric_neighbor_delta(
+    label: str,
+    query_value: Any,
+    neighbor_value: Any,
+    *,
+    decimals: int = 2,
+    unit: str = "",
+) -> str:
+    return (
+        f"- {label}: neighbor={_format_scalar(neighbor_value, decimals=decimals, unit=unit)}, "
+        f"delta={_format_delta(neighbor_value, query_value, decimals=decimals, unit=unit)}"
+    )
+
+
+def _load_cached_row(smiles: str) -> Optional[Dict[str, Any]]:
+    from . import metadata_cache
+
+    return metadata_cache.lookup_row(smiles)
+
+
+def _cached_or_compute(cached: Optional[Dict[str, Any]], prop: str, compute_fn):
+    if cached and prop in cached:
+        return cached[prop]
+    return compute_fn()
+
+
+def _compute_shape_summary(smiles: str) -> Dict[str, Any]:
+    from rdkit.Chem import AllChem, Descriptors3D
+
+    from .molecule_profile import _mol_from_smiles
+
+    mol = _mol_from_smiles(smiles)
+    mol = AllChem.AddHs(mol)
+
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 42
+    params.numThreads = 0
+    cid = AllChem.EmbedMolecule(mol, params)
+    if cid < 0:
+        return {"npr1": None, "npr2": None, "shape_class": "unknown"}
+
+    try:
+        props = AllChem.MMFFGetMoleculeProperties(mol, mmffVariant="MMFF94s")
+        if props is not None:
+            ff = AllChem.MMFFGetMoleculeForceField(mol, props, confId=cid)
+            if ff is not None:
+                ff.Minimize(maxIts=500)
+        else:
+            ff = AllChem.UFFGetMoleculeForceField(mol, confId=cid)
+            if ff is not None:
+                ff.Minimize(maxIts=500)
+    except Exception:
+        pass
+
+    try:
+        npr1 = float(Descriptors3D.NPR1(mol, confId=cid))
+        npr2 = float(Descriptors3D.NPR2(mol, confId=cid))
+    except Exception:
+        return {"npr1": None, "npr2": None, "shape_class": "unknown"}
+
+    if npr1 > 0.6 and npr2 > 0.6:
+        shape_class = "sphere-like"
+    elif npr1 < 0.3 and npr2 > 0.6:
+        shape_class = "disc-like"
+    elif npr1 < 0.3 and npr2 < 0.5:
+        shape_class = "rod-like"
+    else:
+        shape_class = "intermediate"
+
+    return {"npr1": npr1, "npr2": npr2, "shape_class": shape_class}
+
+
+def _compute_molecular_profile_summary(smiles: str) -> Dict[str, Any]:
+    from rdkit.Chem import AllChem, Crippen, Descriptors, GraphDescriptors, Lipinski, rdMolDescriptors
+
+    from .molecule_profile import _mol_from_smiles
+    from .v14_consolidated import _f_neutral_from_pka
+
+    cached = _load_cached_row(smiles)
+    mol = _mol_from_smiles(smiles)
+
+    molecular_weight = float(_cached_or_compute(cached, "MolWt", lambda: Descriptors.MolWt(mol)))
+    heavy_atoms = int(_cached_or_compute(cached, "HeavyAtomCount", lambda: Descriptors.HeavyAtomCount(mol)))
+    heteroatoms = int(_cached_or_compute(cached, "NumHeteroatoms", lambda: Lipinski.NumHeteroatoms(mol)))
+    logp = float(_cached_or_compute(cached, "MolLogP", lambda: Crippen.MolLogP(mol)))
+    tpsa = float(_cached_or_compute(cached, "TPSA", lambda: rdMolDescriptors.CalcTPSA(mol)))
+    h_bond_donors = int(_cached_or_compute(cached, "NumHDonors", lambda: Lipinski.NumHDonors(mol)))
+    h_bond_acceptors = int(_cached_or_compute(cached, "NumHAcceptors", lambda: Lipinski.NumHAcceptors(mol)))
+    rotatable_bonds = int(_cached_or_compute(cached, "NumRotatableBonds", lambda: Lipinski.NumRotatableBonds(mol)))
+    fraction_csp3 = float(_cached_or_compute(cached, "FractionCSP3", lambda: rdMolDescriptors.CalcFractionCSP3(mol)))
+    bertz_complexity = float(_cached_or_compute(cached, "BertzCT", lambda: Descriptors.BertzCT(mol)))
+    charge_max = charge_min = charge_polarization = None
+
+    try:
+        AllChem.ComputeGasteigerCharges(mol)
+        charges = []
+        for atom in mol.GetAtoms():
+            try:
+                charge = float(atom.GetDoubleProp("_GasteigerCharge"))
+                if not np.isnan(charge):
+                    charges.append(charge)
+            except Exception:
+                pass
+        if charges:
+            charge_max = max(charges)
+            charge_min = min(charges)
+            charge_polarization = charge_max - charge_min
+    except Exception:
+        pass
+
+    neutral_fraction = _safe_float(
+        cached.get("f_neutral_7_4") if cached else None
+    )
+    if neutral_fraction is None:
+        most_acidic = cached.get("most_acidic_pka") if cached else None
+        most_basic = cached.get("most_basic_pka") if cached else None
+        neutral_fraction = _f_neutral_from_pka(most_acidic, most_basic, 7.4)
+
+    shape = _compute_shape_summary(smiles)
+
+    return {
+        "molecular_weight": molecular_weight,
+        "heavy_atoms": heavy_atoms,
+        "heteroatoms": heteroatoms,
+        "logp": logp,
+        "tpsa": tpsa,
+        "h_bond_donors": h_bond_donors,
+        "h_bond_acceptors": h_bond_acceptors,
+        "rotatable_bonds": rotatable_bonds,
+        "fraction_csp3": fraction_csp3,
+        "bertz_complexity": bertz_complexity,
+        "charge_polarization": charge_polarization,
+        "neutral_fraction_7_4": neutral_fraction,
+        "hall_kier_alpha": float(_cached_or_compute(cached, "HallKierAlpha", lambda: GraphDescriptors.HallKierAlpha(mol))),
+        "shape": shape,
+    }
+
+
+def _compute_ionization_and_solubility_summary(smiles: str) -> Dict[str, Any]:
+    from .adme import _compact_ionization, _estimate_logd_from_pka, _get_pka_data
+
+    cached = _load_cached_row(smiles)
+    pka_data = _get_pka_data(smiles, cached)
+    logd_74 = _estimate_logd_from_pka(smiles, 7.4, pka_data, cached)
+    solubility_logs = _safe_float(cached.get("minimol_solubility_log_mol_L") if cached else None)
+    ionization_text = _compact_ionization(smiles, ph=7.4)
+
+    first_line = ionization_text.splitlines()[0] if ionization_text else ""
+    match = re.match(r"Ionization at pH 7\.4: ([^,]+), charge (-?\d+)", first_line)
+    charge_class = match.group(1) if match else "unknown"
+    charge = int(match.group(2)) if match else None
+    ambiguous = "Ambiguous (pKa near pH): Yes" in ionization_text
+
+    return {
+        "most_basic_pka": pka_data.get("most_basic_pka"),
+        "most_acidic_pka": pka_data.get("most_acidic_pka"),
+        "num_basic_sites": pka_data.get("num_basic_sites"),
+        "num_acidic_sites": pka_data.get("num_acidic_sites"),
+        "charge_class": charge_class,
+        "charge": charge,
+        "ambiguous": ambiguous,
+        "logd_74": logd_74,
+        "solubility_logs": solubility_logs,
+    }
+
+
+def _parse_functional_group_names(text: str) -> List[str]:
+    names: List[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("- "):
+            names.append(line[2:].split(":")[0].strip())
+    return names
+
+
+def _compute_structure_and_topology_summary(smiles: str) -> Dict[str, Any]:
+    from rdkit.Chem import Lipinski
+
+    from .molecule_profile import _mol_from_smiles
+
+    cached = _load_cached_row(smiles)
+    mol = _mol_from_smiles(smiles)
+    functional_group_text = _compute_structure_and_topology(smiles).split("\n\n", 1)[0]
+
+    aromatic_atoms = int(
+        _cached_or_compute(
+            cached,
+            "NumAromaticAtoms",
+            lambda: sum(1 for atom in mol.GetAtoms() if atom.GetIsAromatic()),
+        )
+    )
+
+    return {
+        "functional_groups": _parse_functional_group_names(functional_group_text),
+        "ring_total": int(_cached_or_compute(cached, "RingCount", lambda: Lipinski.RingCount(mol))),
+        "ring_aromatic": int(_cached_or_compute(cached, "NumAromaticRings", lambda: Lipinski.NumAromaticRings(mol))),
+        "ring_aliphatic": int(_cached_or_compute(cached, "NumAliphaticRings", lambda: Lipinski.NumAliphaticRings(mol))),
+        "ring_saturated": int(_cached_or_compute(cached, "NumSaturatedRings", lambda: Lipinski.NumSaturatedRings(mol))),
+        "heterocycles": int(_cached_or_compute(cached, "NumHeterocycles", lambda: Lipinski.NumHeterocycles(mol))),
+        "aromatic_atoms": aromatic_atoms,
+        "total_atoms": int(mol.GetNumAtoms()),
+    }
+
+
+def _parse_alert_categories(text: str) -> List[str]:
+    categories: List[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        match = re.match(r"\d+\.\s+(.+)", line)
+        if match:
+            categories.append(match.group(1).strip())
+    return categories
+
+
+def _compute_alert_screening_summary(smiles: str) -> Dict[str, Any]:
+    alert_text = _compute_alert_screening(smiles)
+    categories = _parse_alert_categories(alert_text)
+    return {
+        "categories": categories,
+        "category_count": len(categories),
+    }
+
+
+def _compute_feature_summary(smiles: str, feature_name: str) -> Dict[str, Any]:
+    if feature_name == "molecular_profile":
+        return _compute_molecular_profile_summary(smiles)
+    if feature_name == "ionization_and_solubility":
+        return _compute_ionization_and_solubility_summary(smiles)
+    if feature_name == "structure_and_topology":
+        return _compute_structure_and_topology_summary(smiles)
+    if feature_name == "alert_screening":
+        return _compute_alert_screening_summary(smiles)
+    return {}
+
+
+def _format_molecular_profile_comparison(query_summary: Dict[str, Any], neighbor_summary: Dict[str, Any]) -> str:
+    shape_query = query_summary["shape"]
+    shape_neighbor = neighbor_summary["shape"]
+    lines = [
+        "molecular_profile:",
+        _metric_neighbor_delta("Molecular weight", query_summary["molecular_weight"], neighbor_summary["molecular_weight"], decimals=2, unit=" Da"),
+        _metric_neighbor_delta("Heavy atoms", query_summary["heavy_atoms"], neighbor_summary["heavy_atoms"], decimals=0),
+        _metric_neighbor_delta("Heteroatoms", query_summary["heteroatoms"], neighbor_summary["heteroatoms"], decimals=0),
+        _metric_neighbor_delta("logP", query_summary["logp"], neighbor_summary["logp"], decimals=2),
+        _metric_neighbor_delta("TPSA", query_summary["tpsa"], neighbor_summary["tpsa"], decimals=2, unit=" Å²"),
+        _metric_neighbor_delta("H-bond donors", query_summary["h_bond_donors"], neighbor_summary["h_bond_donors"], decimals=0),
+        _metric_neighbor_delta("H-bond acceptors", query_summary["h_bond_acceptors"], neighbor_summary["h_bond_acceptors"], decimals=0),
+        _metric_neighbor_delta("Rotatable bonds", query_summary["rotatable_bonds"], neighbor_summary["rotatable_bonds"], decimals=0),
+        _metric_neighbor_delta("Fsp3", query_summary["fraction_csp3"], neighbor_summary["fraction_csp3"], decimals=2),
+        _metric_neighbor_delta("Bertz complexity", query_summary["bertz_complexity"], neighbor_summary["bertz_complexity"], decimals=2),
+        _metric_neighbor_delta("Charge polarization", query_summary["charge_polarization"], neighbor_summary["charge_polarization"], decimals=2),
+        _metric_neighbor_delta("Neutral fraction at pH 7.4", query_summary["neutral_fraction_7_4"], neighbor_summary["neutral_fraction_7_4"], decimals=4),
+        _metric_neighbor_delta("PMI NPR1", shape_query["npr1"], shape_neighbor["npr1"], decimals=4),
+        _metric_neighbor_delta("PMI NPR2", shape_query["npr2"], shape_neighbor["npr2"], decimals=4),
+        f"- Shape class: {shape_neighbor['shape_class']}",
+    ]
+    return "\n".join(lines)
+
+
+def _format_ionization_and_solubility_comparison(query_summary: Dict[str, Any], neighbor_summary: Dict[str, Any]) -> str:
+    lines = [
+        "ionization_and_solubility:",
+        _metric_neighbor_delta("Strongest basic pKa", query_summary["most_basic_pka"], neighbor_summary["most_basic_pka"], decimals=2),
+        _metric_neighbor_delta("Strongest acidic pKa", query_summary["most_acidic_pka"], neighbor_summary["most_acidic_pka"], decimals=2),
+        _metric_neighbor_delta("Basic site count", query_summary["num_basic_sites"], neighbor_summary["num_basic_sites"], decimals=0),
+        _metric_neighbor_delta("Acidic site count", query_summary["num_acidic_sites"], neighbor_summary["num_acidic_sites"], decimals=0),
+        f"- Ionization state: {neighbor_summary['charge_class']} (charge {neighbor_summary['charge']})",
+        f"- Ambiguous near pH 7.4: {'Yes' if neighbor_summary['ambiguous'] else 'No'}",
+        _metric_neighbor_delta("LogD at pH 7.4", query_summary["logd_74"], neighbor_summary["logd_74"], decimals=2),
+        _metric_neighbor_delta("Solubility logS", query_summary["solubility_logs"], neighbor_summary["solubility_logs"], decimals=2, unit=" log(mol/L)"),
+    ]
+    return "\n".join(lines)
+
+
+def _format_structure_and_topology_comparison(query_summary: Dict[str, Any], neighbor_summary: Dict[str, Any]) -> str:
+    neighbor_groups = neighbor_summary["functional_groups"]
+    lines = [
+        "structure_and_topology:",
+        f"- Functional groups: {', '.join(neighbor_groups) if neighbor_groups else 'none'}",
+        _metric_neighbor_delta("Total rings", query_summary["ring_total"], neighbor_summary["ring_total"], decimals=0),
+        _metric_neighbor_delta("Aromatic rings", query_summary["ring_aromatic"], neighbor_summary["ring_aromatic"], decimals=0),
+        _metric_neighbor_delta("Aliphatic rings", query_summary["ring_aliphatic"], neighbor_summary["ring_aliphatic"], decimals=0),
+        _metric_neighbor_delta("Saturated rings", query_summary["ring_saturated"], neighbor_summary["ring_saturated"], decimals=0),
+        _metric_neighbor_delta("Heterocycles", query_summary["heterocycles"], neighbor_summary["heterocycles"], decimals=0),
+        f"- Aromatic atoms: {neighbor_summary['aromatic_atoms']}/{neighbor_summary['total_atoms']}",
+    ]
+    return "\n".join(lines)
+
+
+def _format_alert_screening_comparison(query_summary: Dict[str, Any], neighbor_summary: Dict[str, Any]) -> str:
+    neighbor_categories = neighbor_summary["categories"]
+    lines = [
+        "alert_screening:",
+        f"- Alert categories: {', '.join(neighbor_categories) if neighbor_categories else 'none'}",
+        f"- Category count: {neighbor_summary['category_count']}",
+    ]
+    return "\n".join(lines)
+
+
+def _format_feature_comparison(
+    feature_name: str,
+    query_summary: Dict[str, Any],
+    neighbor_summary: Dict[str, Any],
+) -> str:
+    if feature_name == "molecular_profile":
+        return _format_molecular_profile_comparison(query_summary, neighbor_summary)
+    if feature_name == "ionization_and_solubility":
+        return _format_ionization_and_solubility_comparison(query_summary, neighbor_summary)
+    if feature_name == "structure_and_topology":
+        return _format_structure_and_topology_comparison(query_summary, neighbor_summary)
+    if feature_name == "alert_screening":
+        return _format_alert_screening_comparison(query_summary, neighbor_summary)
+    return feature_name
 
 
 def _compute_molecular_profile(smiles: str) -> str:
@@ -177,15 +556,15 @@ def get_features(smiles: str, feature_names: List[str]) -> str:
     return _compute_features_for_smiles(smiles, resolved)
 
 
-K_NEIGHBORS = 5
+K_NEIGHBORS = 3
 
 
 def get_neighbors(
     smiles: str,
     task_name: str,
     feature_names: Optional[List[str]] = None,
-    include_labels: bool = True,
 ) -> str:
+    include_labels = True
     from .similarity import (
         _canonicalize_smiles,
         _compute_query_fp,
@@ -263,6 +642,13 @@ def get_neighbors(
     top_idx = np.argsort(train_sims)[::-1][:k]
 
     sections = [f"Nearest Neighbors for task '{resolved_task}' (k={k}):"]
+    query_feature_summaries: Dict[str, Dict[str, Any]] = {}
+    if resolved_features:
+        for feature_name in resolved_features:
+            try:
+                query_feature_summaries[feature_name] = _compute_feature_summary(smiles, feature_name)
+            except Exception as e:
+                query_feature_summaries[feature_name] = {"error": str(e)}
 
     for i, idx in enumerate(top_idx, 1):
         nbr_smiles = str(train_smiles[idx])
@@ -274,9 +660,26 @@ def get_neighbors(
         sections.append(f"\n{i}. {nbr_smiles} (similarity: {sim:.2f}{label_part})")
 
         if resolved_features:
-            feat_text = _compute_features_for_smiles(nbr_smiles, resolved_features)
-            if feat_text:
-                indented = "\n".join("   " + line for line in feat_text.split("\n"))
+            comparison_blocks = []
+            for feature_name in resolved_features:
+                query_summary = query_feature_summaries.get(feature_name, {})
+                if query_summary.get("error"):
+                    comparison_blocks.append(
+                        f"{feature_name}:\n- Error while summarizing query features: {query_summary['error']}"
+                    )
+                    continue
+                try:
+                    neighbor_summary = _compute_feature_summary(nbr_smiles, feature_name)
+                    comparison_blocks.append(
+                        _format_feature_comparison(feature_name, query_summary, neighbor_summary)
+                    )
+                except Exception as e:
+                    comparison_blocks.append(
+                        f"{feature_name}:\n- Error while summarizing neighbor features: {e}"
+                    )
+            if comparison_blocks:
+                comparison_text = "\n\n".join(comparison_blocks)
+                indented = "\n".join("   " + line for line in comparison_text.split("\n"))
                 sections.append(indented)
 
     if k == 0:
@@ -290,9 +693,9 @@ GET_FEATURES_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_features",
         "description": (
-            "Analyze a molecule and groups of properties"
-            "such as a (1) core profile of molecular properties like LogP, TPSA, and Molecular Weight (2) pKa, ionization, logD, and solubility"
-            " (3) functional groups and ring systems or (4) structural-alert screening results"
+            "Analyze a molecule and return selected evidence groups covering "
+            "molecular profile, ionization and solubility, structure and topology, "
+            "or structural-alert screening."
         ),
         "parameters": {
             "type": "object",
@@ -304,13 +707,7 @@ GET_FEATURES_TOOL: Dict[str, Any] = {
                 "feature_names": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": (
-                        "One or more evidence groups to inspect for this molecule. "
-                        "molecular_profile covers molecular size, polarity, lipophilicity, hydrogen-bonding, "
-                        "complexity indicators, electronic properties, and PMI-based 3D shape; ionization_and_solubility covers pKa, ionization state, "
-                        "logD, and aqueous solubility; structure_and_topology covers functional groups and "
-                        "ring systems; alert_screening covers structural-alert and liability-screening matches."
-                    ),
+                    "description": _feature_names_description_text(),
                 },
             },
             "required": ["smiles", "feature_names"],
@@ -324,9 +721,7 @@ GET_NEIGHBORS_TOOL: Dict[str, Any] = {
     "function": {
         "name": "get_neighbors",
         "description": (
-            "Retrieve close analogs for a molecule within a specified prediction task. "
-            "Use this to compare the query molecule against similar compounds, inspect "
-            "their labels, and optionally review selected evidence groups for each analog."
+            "Grabs similar molecules, their properties, and their actual label for the task at hand."
         ),
         "parameters": {
             "type": "object",
@@ -335,99 +730,18 @@ GET_NEIGHBORS_TOOL: Dict[str, Any] = {
                     "type": "string",
                     "description": "Query molecule, provided as a SMILES string.",
                 },
-                "task_name": {
-                    "type": "string",
-                    "description": (
-                        "Prediction task or assay context in which neighbors should be retrieved, "
-                        "for example AMES, DILI, or hERG."
-                    ),
-                },
                 "feature_names": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": (
-                        "Optional evidence groups to compute for each retrieved analog, "
-                        "using the same group definitions as get_features."
-                    ),
-                },
-                "include_labels": {
-                    "type": "boolean",
-                    "description": "Whether to include observed task labels for the retrieved analogs. Default true.",
+                    "description": "Feature groups to include for the similar molecules. " + _feature_names_description_text(),
                 },
             },
-            "required": ["smiles", "task_name"],
+            "required": ["smiles", "feature_names"],
             "additionalProperties": False,
         },
     },
 }
 
+TASK_NEIGHBOR_TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {}
 
-def _task_alias(task: str) -> str:
-    return TASK_ALIASES.get(task, task.lower())
-
-
-def _make_task_neighbors_tool_schema(task: str) -> Dict[str, Any]:
-    alias = _task_alias(task)
-    return {
-        "type": "function",
-        "function": {
-            "name": f"get_neighbors_{alias}",
-            "description": (
-                f"Retrieve close analogs for a molecule within the {task} prediction task. "
-                "Use this to compare the query against similar compounds from the same task, "
-                "inspect their labels, and optionally review selected evidence groups for each analog."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "smiles": {
-                        "type": "string",
-                        "description": "Query molecule, provided as a SMILES string.",
-                    },
-                    "feature_names": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": (
-                            "Optional evidence groups to compute for each retrieved analog, "
-                            "using the same group definitions as get_features."
-                        ),
-                    },
-                    "include_labels": {
-                        "type": "boolean",
-                        "description": "Whether to include observed task labels for the retrieved analogs. Default true.",
-                    },
-                },
-                "required": ["smiles"],
-                "additionalProperties": False,
-            },
-        },
-    }
-
-
-def _make_task_neighbors_callable(task: str):
-    alias = _task_alias(task)
-
-    def _get_neighbors(
-        smiles: str,
-        feature_names: Optional[List[str]] = None,
-        include_labels: bool = True,
-    ) -> str:
-        return get_neighbors(
-            smiles,
-            task_name=task,
-            feature_names=feature_names,
-            include_labels=include_labels,
-        )
-
-    _get_neighbors.__name__ = f"get_neighbors_{alias}"
-    return _get_neighbors
-
-
-TASK_NEIGHBOR_TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
-    task: _make_task_neighbors_tool_schema(task) for task in TASKS
-}
-
-TASK_NEIGHBOR_CALLABLES: Dict[str, Any] = {
-    f"get_neighbors_{_task_alias(task)}": _make_task_neighbors_callable(task)
-    for task in TASKS
-}
+TASK_NEIGHBOR_CALLABLES: Dict[str, Any] = {}

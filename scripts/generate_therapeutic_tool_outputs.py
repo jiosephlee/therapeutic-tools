@@ -143,9 +143,18 @@ OUTPUT_SPECS: list[OutputSpec] = [
 ]
 
 
-def generate_outputs(output_dir: Path, smiles: str, molecule_name: str, task_name: str) -> None:
+def generate_outputs(
+    output_dir: Path,
+    smiles: str,
+    molecule_name: str,
+    task_name: str,
+    versions: list[str] | None = None,
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    requested_versions = set(versions or [])
     for spec in OUTPUT_SPECS:
+        if requested_versions and spec.version not in requested_versions:
+            continue
         content = "\n".join(_header(spec.version, smiles, molecule_name, task_name))
         content += spec.render(smiles, task_name)
         out_path = output_dir / f"{spec.version}.txt"
@@ -159,6 +168,13 @@ def main() -> None:
     parser.add_argument("--name", default=DEFAULT_NAME, help="Display name for the example molecule")
     parser.add_argument("--task", default=DEFAULT_TASK, help="Task context for neighbor-based tools")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory for versioned text outputs")
+    parser.add_argument(
+        "--versions",
+        nargs="+",
+        choices=[spec.version for spec in OUTPUT_SPECS],
+        default=None,
+        help="Optional subset of tool versions to render.",
+    )
     args = parser.parse_args()
 
     generate_outputs(
@@ -166,6 +182,7 @@ def main() -> None:
         smiles=args.smiles,
         molecule_name=args.name,
         task_name=args.task,
+        versions=args.versions,
     )
 
 
