@@ -5,6 +5,7 @@ Provides semantic tool functions and their OpenAI tool schemas.
 Legacy individual descriptor functions are available in .legacy_tools.
 """
 
+import os
 from typing import List, Dict, Any
 
 # ============================================================
@@ -143,6 +144,15 @@ from .v15 import (
     COMPARE_SIMILAR_MOLS_TOOL as V15_COMPARE_SIMILAR_MOLS_TOOL,
     TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS as V15_TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS,
 )
+from .v15_no_neighbor import get_mol_properties_and_fg as v15_no_neighbor_get_mol_properties_and_fg
+from .v15_no_neighbor import (
+    GET_MOL_PROPERTIES_AND_FG_TOOL as V15_NO_NEIGHBOR_GET_MOL_PROPERTIES_AND_FG_TOOL,
+)
+from .v15_neighbor_only import compare_similar_mols as v15_neighbor_only_compare_similar_mols
+from .v15_neighbor_only import (
+    COMPARE_SIMILAR_MOLS_TOOL as V15_NEIGHBOR_ONLY_COMPARE_SIMILAR_MOLS_TOOL,
+    TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS as V15_NEIGHBOR_ONLY_TASK_COMPARE_SIMILAR_MOLS_TOOL_SCHEMAS,
+)
 
 
 # ============================================================
@@ -188,7 +198,18 @@ _FUNCTION_MAP = {
     "compare_similar_mols": compare_similar_mols,
 }
 
+_FUNCTION_MAP_BY_TOOL_VERSION = {
+    "v15_no_neighbor": {
+        "get_mol_properties_and_fg": v15_no_neighbor_get_mol_properties_and_fg,
+    },
+    "v15_neighbor_only": {
+        "compare_similar_mols": v15_neighbor_only_compare_similar_mols,
+    },
+}
+
 
 def get_function_by_name(name: str):
     """Look up a tool function by its name."""
-    return _FUNCTION_MAP.get(name)
+    tool_version = os.environ.get("OPENRLHF_TOOL_VERSION")
+    function_map = _FUNCTION_MAP_BY_TOOL_VERSION.get(tool_version, _FUNCTION_MAP)
+    return function_map.get(name)
