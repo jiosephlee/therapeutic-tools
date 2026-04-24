@@ -730,9 +730,13 @@ def _load_toxalerts():
 
 
 @lru_cache(maxsize=1)
-def _load_safety_cache() -> Dict[str, str]:
-    """Load precomputed safety string outputs keyed by canonical SMILES."""
-    cache: Dict[str, str] = {}
+def _load_safety_cache() -> Dict[tuple[str, bool], str]:
+    """Load precomputed safety string outputs keyed by SMILES and include_smarts.
+
+    Legacy cache rows without an ``include_smarts`` field are treated as the
+    ``include_smarts=True`` variant for backward compatibility.
+    """
+    cache: Dict[tuple[str, bool], str] = {}
     if not os.path.exists(_SAFETY_CACHE_PATH):
         return cache
     with open(_SAFETY_CACHE_PATH, "r") as f:
@@ -745,8 +749,13 @@ def _load_safety_cache() -> Dict[str, str]:
                 continue
             smiles = entry.get("smiles")
             result = entry.get("result")
-            if isinstance(smiles, str) and isinstance(result, str):
-                cache[smiles] = result
+            include_smarts = entry.get("include_smarts", True)
+            if (
+                isinstance(smiles, str)
+                and isinstance(result, str)
+                and isinstance(include_smarts, bool)
+            ):
+                cache[(smiles, include_smarts)] = result
     return cache
 
 
@@ -854,9 +863,11 @@ def screen_structural_alerts(smiles: str, include_smarts: bool = True) -> str:
         Multi-line formatted string with toxicophore analysis.
     """
     canonical = _canonicalize_smiles(smiles)
-    cache = _load_safety_cache() if include_smarts else _load_safety_cache_no_smarts()
-    if canonical is not None and canonical in cache:
-        return cache[canonical]
+    cache = _load_safety_cache()
+    if (smiles, include_smarts) in cache:
+        return cache[(smiles, include_smarts)]
+    if canonical is not None and (canonical, include_smarts) in cache:
+        return cache[(canonical, include_smarts)]
 
     sections = []
 

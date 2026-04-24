@@ -128,6 +128,21 @@ def _render_v16_no_neighbor(smiles: str, task_name: str) -> str:
     return _render_features_version("openrlhf.tools.therapeutic_tools.v16_no_neighbor", smiles, task_name, False)
 
 
+def _render_v17(smiles: str, task_name: str) -> str:
+    mod = importlib.import_module("openrlhf.tools.therapeutic_tools.v17")
+    parts = [
+        _render_section(
+            "get_features",
+            mod.get_features(smiles, list(mod.FEATURE_NAMES)),
+        ),
+        _render_section(
+            "get_neighbors",
+            mod.get_neighbors(smiles, task_name=task_name),
+        ),
+    ]
+    return "\n".join(parts).rstrip() + "\n"
+
+
 OUTPUT_SPECS: list[OutputSpec] = [
     OutputSpec("v10", _render_v10),
     OutputSpec("v11", _render_v11),
@@ -140,6 +155,7 @@ OUTPUT_SPECS: list[OutputSpec] = [
     OutputSpec("v15", _render_v15),
     OutputSpec("v16", _render_v16),
     OutputSpec("v16_no_neighbor", _render_v16_no_neighbor),
+    OutputSpec("v17", _render_v17),
 ]
 
 

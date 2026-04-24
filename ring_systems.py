@@ -32,6 +32,12 @@ def analyze_ring_systems(smiles: str) -> str:
     Returns:
         Multi-line formatted string with ring system analysis.
     """
+    from .group_string_cache import lookup as _lookup_group_string
+
+    cached = _lookup_group_string("ring_systems", smiles)
+    if cached is not None:
+        return cached
+
     from rdkit import Chem
     from rdkit.Chem import Lipinski, rdMolDescriptors
     from . import metadata_cache

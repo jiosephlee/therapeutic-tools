@@ -44,6 +44,8 @@ PROPERTY_DISPLAY_NAMES: dict[str, str] = {
     "most_basic_pka": "Strongest basic pKa",
     "most_acidic_pka": "Strongest acidic pKa",
     "logD_74": "logD (pH 7.4)",
+    "esol_log_s": "Aqueous solubility",
+    "minimol_log_s": "Aqueous solubility",
     "NOCount": "Nitrogen and oxygen atom count",
     "f_neutral_7_4": "Neutral fraction at pH 7.4",
     "BCUT2D_MRLOW": "Low BCUT mass-refractivity eigenvalue",
