@@ -106,6 +106,36 @@ def _format_pka_section(smiles: str, pka_data: dict, simple: bool = False) -> st
     return "\n".join(lines)
 
 
+import json as _json
+import os as _os
+from functools import lru_cache as _lru_cache
+
+_IONIZATION_CACHE_PATH = _os.path.join(
+    _os.path.dirname(__file__), "cache", "ionization_cache.jsonl"
+)
+
+
+@_lru_cache(maxsize=1)
+def _load_ionization_cache() -> "dict[tuple[str, float], str]":
+    cache: dict[tuple[str, float], str] = {}
+    if not _os.path.exists(_IONIZATION_CACHE_PATH):
+        return cache
+    with open(_IONIZATION_CACHE_PATH, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = _json.loads(line)
+            except Exception:
+                continue
+            smi = entry.get("smiles")
+            ph = entry.get("ph")
+            result = entry.get("result")
+            if isinstance(smi, str) and isinstance(ph, (int, float)) and isinstance(result, str):
+                cache[(smi, float(ph))] = result
+    return cache
+
+
 def _compact_ionization(smiles: str, ph: float = 7.4) -> str:
     """Compact ionization state classification. 3 lines for simple cases,
     expanded for ampholytes/zwitterions."""
@@ -115,6 +145,11 @@ def _compact_ionization(smiles: str, ph: float = 7.4) -> str:
 
     mol = Chem.MolFromSmiles(smiles)
     canon_smi = Chem.MolToSmiles(mol, canonical=True)
+
+    cache = _load_ionization_cache()
+    hit = cache.get((canon_smi, float(ph)))
+    if hit is not None:
+        return hit
 
     try:
         variants = protonate_smiles(canon_smi, ph_min=ph, ph_max=ph, precision=0.5)

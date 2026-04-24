@@ -659,6 +659,7 @@ _TOXALERTS_SKIP = {
 
 _CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 _SAFETY_CACHE_PATH = os.path.join(_CACHE_DIR, "safety_cache.jsonl")
+_SAFETY_CACHE_NO_SMARTS_PATH = os.path.join(_CACHE_DIR, "safety_cache_no_smarts.jsonl")
 
 
 import re as _re
@@ -735,6 +736,27 @@ def _load_safety_cache() -> Dict[str, str]:
     if not os.path.exists(_SAFETY_CACHE_PATH):
         return cache
     with open(_SAFETY_CACHE_PATH, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            smiles = entry.get("smiles")
+            result = entry.get("result")
+            if isinstance(smiles, str) and isinstance(result, str):
+                cache[smiles] = result
+    return cache
+
+
+@lru_cache(maxsize=1)
+def _load_safety_cache_no_smarts() -> Dict[str, str]:
+    """Load precomputed include_smarts=False safety strings keyed by canonical SMILES."""
+    cache: Dict[str, str] = {}
+    if not os.path.exists(_SAFETY_CACHE_NO_SMARTS_PATH):
+        return cache
+    with open(_SAFETY_CACHE_NO_SMARTS_PATH, "r") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -832,10 +854,9 @@ def screen_structural_alerts(smiles: str, include_smarts: bool = True) -> str:
         Multi-line formatted string with toxicophore analysis.
     """
     canonical = _canonicalize_smiles(smiles)
-    if include_smarts:
-        cache = _load_safety_cache()
-        if canonical is not None and canonical in cache:
-            return cache[canonical]
+    cache = _load_safety_cache() if include_smarts else _load_safety_cache_no_smarts()
+    if canonical is not None and canonical in cache:
+        return cache[canonical]
 
     sections = []
 

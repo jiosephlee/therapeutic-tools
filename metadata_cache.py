@@ -44,8 +44,12 @@ def lookup(smiles: str, prop: str) -> Optional[float]:
     return float(val) if pd.notna(val) else None
 
 
+@lru_cache(maxsize=4096)
 def lookup_row(smiles: str) -> Optional[Dict[str, float]]:
-    """Look up all cached properties for a SMILES. Returns dict or None."""
+    """Look up all cached properties for a SMILES. Returns dict or None.
+
+    The returned dict is memoized; callers must not mutate it.
+    """
     meta = _load_metadata()
     if meta is None or smiles not in meta.index:
         return None

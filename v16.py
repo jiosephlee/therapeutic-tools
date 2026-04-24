@@ -12,8 +12,11 @@ feature buckets while preserving the same underlying v14 evidence surface:
 
 from __future__ import annotations
 
+import json
 import math
+import os
 import re
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -169,7 +172,55 @@ def _cached_or_compute(cached: Optional[Dict[str, Any]], prop: str, compute_fn):
     return compute_fn()
 
 
+_SHAPE_CACHE_PATH = os.path.join(os.path.dirname(__file__), "cache", "shape_cache.jsonl")
+
+
+@lru_cache(maxsize=1)
+def _load_shape_cache() -> Dict[str, Dict[str, Any]]:
+    cache: Dict[str, Dict[str, Any]] = {}
+    if not os.path.exists(_SHAPE_CACHE_PATH):
+        return cache
+    with open(_SHAPE_CACHE_PATH, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            smi = entry.get("smiles")
+            if not isinstance(smi, str):
+                continue
+            cache[smi] = {
+                "npr1": entry.get("npr1"),
+                "npr2": entry.get("npr2"),
+                "shape_class": entry.get("shape_class", "unknown"),
+            }
+    return cache
+
+
+def _lookup_shape_cache(smiles: str) -> Optional[Dict[str, Any]]:
+    cache = _load_shape_cache()
+    hit = cache.get(smiles)
+    if hit is not None:
+        return hit
+    try:
+        from rdkit import Chem
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        canonical = Chem.MolToSmiles(mol, canonical=True)
+    except Exception:
+        return None
+    return cache.get(canonical)
+
+
 def _compute_shape_summary(smiles: str) -> Dict[str, Any]:
+    cached = _lookup_shape_cache(smiles)
+    if cached is not None:
+        return cached
+
     from rdkit.Chem import AllChem, Descriptors3D
 
     from .molecule_profile import _mol_from_smiles
@@ -215,6 +266,7 @@ def _compute_shape_summary(smiles: str) -> Dict[str, Any]:
     return {"npr1": npr1, "npr2": npr2, "shape_class": shape_class}
 
 
+@lru_cache(maxsize=256)
 def _compute_molecular_profile_summary(smiles: str) -> Dict[str, Any]:
     from rdkit.Chem import AllChem, Crippen, Descriptors, GraphDescriptors, Lipinski, rdMolDescriptors
 
@@ -281,6 +333,7 @@ def _compute_molecular_profile_summary(smiles: str) -> Dict[str, Any]:
     }
 
 
+@lru_cache(maxsize=256)
 def _compute_ionization_and_solubility_summary(smiles: str) -> Dict[str, Any]:
     from .adme import _compact_ionization, _estimate_logd_from_pka, _get_pka_data
 
@@ -318,14 +371,16 @@ def _parse_functional_group_names(text: str) -> List[str]:
     return names
 
 
+@lru_cache(maxsize=256)
 def _compute_structure_and_topology_summary(smiles: str) -> Dict[str, Any]:
     from rdkit.Chem import Lipinski
 
+    from .functional_groups import analyze_functional_groups
     from .molecule_profile import _mol_from_smiles
 
     cached = _load_cached_row(smiles)
     mol = _mol_from_smiles(smiles)
-    functional_group_text = _compute_structure_and_topology(smiles).split("\n\n", 1)[0]
+    functional_group_text = analyze_functional_groups(smiles, simple=True)
 
     aromatic_atoms = int(
         _cached_or_compute(
@@ -357,6 +412,7 @@ def _parse_alert_categories(text: str) -> List[str]:
     return categories
 
 
+@lru_cache(maxsize=256)
 def _compute_alert_screening_summary(smiles: str) -> Dict[str, Any]:
     alert_text = _compute_alert_screening(smiles)
     categories = _parse_alert_categories(alert_text)
