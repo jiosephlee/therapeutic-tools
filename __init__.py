@@ -169,6 +169,10 @@ from .v15_neighbor_only import compare_similar_mols as v15_neighbor_only_compare
 from .v15_neighbor_only import (
     COMPARE_SIMILAR_MOLS_TOOL as V15_NEIGHBOR_ONLY_COMPARE_SIMILAR_MOLS_TOOL,
 )
+from .v15_neighbor_only_4 import compare_similar_mols as v15_neighbor_only_4_compare_similar_mols
+from .v15_neighbor_only_4 import (
+    COMPARE_SIMILAR_MOLS_TOOL as V15_NEIGHBOR_ONLY_4_COMPARE_SIMILAR_MOLS_TOOL,
+)
 
 
 # ============================================================
@@ -220,6 +224,9 @@ _FUNCTION_MAP_BY_TOOL_VERSION = {
     },
     "v15_neighbor_only": {
         "compare_similar_mols": v15_neighbor_only_compare_similar_mols,
+    },
+    "v15_neighbor_only_4": {
+        "compare_similar_mols": v15_neighbor_only_4_compare_similar_mols,
     },
 }
 
