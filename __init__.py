@@ -228,6 +228,9 @@ _FUNCTION_MAP_BY_TOOL_VERSION = {
     "v15_neighbor_only_4": {
         "compare_similar_mols": v15_neighbor_only_4_compare_similar_mols,
     },
+    "v17_get_features_only": {
+        "get_features": v17_get_features_only_get_features,
+    },
 }
 
 
