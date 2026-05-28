@@ -1,0 +1,205 @@
+Therapeutic tool outputs for v16
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_features ===
+Physicochemical Properties:
+- Molecular weight: 180.16 Da
+- Heavy atoms: 13, Heteroatoms: 4
+- logP (Wildman-Crippen): 1.31
+- TPSA: 63.60 Å²
+- H-bond donors: 1, H-bond acceptors: 3
+- Rotatable bonds: 2
+- Fraction sp3 carbons (Fsp3): 0.11
+- Molar refractivity: 44.71
+- Neutral fraction at pH 7.4: 0.0001
+- Labute surface area: 74.7600
+- Nitrogen and oxygen atom count: 4
+- Carbocycle counts: aliphatic=0, aromatic=1, saturated=0
+
+Complexity Metrics:
+- Bertz complexity: 343.22
+- Topology: HallKierAlpha=-1.84, Kappa1=9.25, Kappa2=3.71, Kappa3=2.30, BalabanJ=3.04
+- Amide bonds: 0
+- Stereocenters: 0
+
+Electronic Properties:
+- Gasteiger charges: max=0.34 (atom 10, C), min=-0.48 (atom 12, O)
+- Charge polarization: 0.82
+- EState indices: max=10.61 (nucleophilic proxy), min=-1.11 (electrophilic proxy)
+
+3D Shape Descriptors:
+- PMI ratios (npr1, npr2): (0.4627, 0.6583) → intermediate
+
+pKa Summary:
+- Acidic pKa values: 3.39
+
+Ionization at pH 7.4: acid, charge -1
+- Dominant form: CC(=O)Oc1ccccc1C(=O)[O-]
+- Ambiguous (pKa near pH): No
+
+LogD at pH 7.4: -2.70
+
+Solubility: logS = -1.46 log(mol/L)
+
+Functional groups:
+- carboxylic acid
+- carboxylic ester
+- alcohol
+- ether
+- benzene
+
+Ring Systems:
+- 1 system: 6 membered, aromatic, no heteroatoms
+- Ring counts: 1 total, 1 aromatic, 0 aliphatic, 0 saturated
+- Heterocycles: 0
+- Aromatic atoms: 6 / 13
+- Not detected: PAH, macrocycle, spiro, bridgehead
+
+Structural Alerts (5 categories):
+
+1. Ester / phenol ester / carbonate
+Esters can be hydrolyzed to release active metabolites; phenol esters and carbonates may indicate prodrug instability.
+Matched alerts (3): phenol_ester, Phenylester, Ester
+
+2. Skin sensitization
+Structural alerts for skin sensitization via haptenation (covalent binding to skin proteins).
+Matched alerts (2): Phenyl esters, Esters of aromatic alcohols and their thio and aza analogues
+
+3. Electrophilic agents
+Electrophilic centers that can react with biological nucleophiles (protein thiols, DNA bases).
+Matched alerts (1): Acetates
+
+4. Reactive metabolite formation (idiosyncratic toxicity)
+Can form reactive metabolites via CYP metabolism that covalently modify liver proteins, triggering immune-mediated hepatotoxicity.
+Matched alerts (1): Carboxylic acids
+
+5. Reactive / unstable / toxic groups
+Generally reactive or unstable functional groups flagged across multiple toxicity endpoints.
+Matched alerts (1): Carboxylic acid esters
+
+=== get_neighbors ===
+Nearest Neighbors for task 'AMES' (k=3):
+
+1. CC(=O)Oc1ccccc1C(=O)Oc1ccccc1C(=O)O (similarity: 0.84, label: A)
+   molecular_profile:
+   - Molecular weight: neighbor=300.27 Da, delta=+120.11 Da
+   - Heavy atoms: neighbor=22, delta=+9
+   - Heteroatoms: neighbor=6, delta=+2
+   - logP: neighbor=2.53, delta=+1.22
+   - TPSA: neighbor=89.90 Å², delta=+26.30 Å²
+   - H-bond donors: neighbor=1, delta=0
+   - H-bond acceptors: neighbor=5, delta=+2
+   - Rotatable bonds: neighbor=4, delta=+2
+   - Fsp3: neighbor=0.06, delta=-0.05
+   - Bertz complexity: neighbor=734.92, delta=+391.70
+   - Charge polarization: neighbor=0.82, delta=+0.01
+   - Neutral fraction at pH 7.4: neighbor=0.0001, delta=-0.0000
+   - PMI NPR1: neighbor=0.3790, delta=-0.0837
+   - PMI NPR2: neighbor=0.8290, delta=+0.1707
+   - Shape class: intermediate
+   
+   ionization_and_solubility:
+   - Strongest basic pKa: neighbor=n/a, delta=n/a
+   - Strongest acidic pKa: neighbor=3.11, delta=-0.28
+   - Basic site count: neighbor=0, delta=0
+   - Acidic site count: neighbor=1, delta=0
+   - Ionization state: acid (charge -1)
+   - Ambiguous near pH 7.4: No
+   - LogD at pH 7.4: neighbor=-1.76, delta=+0.94
+   - Solubility logS: neighbor=-4.25 log(mol/L), delta=-2.79 log(mol/L)
+   
+   structure_and_topology:
+   - Functional groups: carboxylic acid, carboxylic ester, alcohol, ether, benzene
+   - Total rings: neighbor=2, delta=+1
+   - Aromatic rings: neighbor=2, delta=+1
+   - Aliphatic rings: neighbor=0, delta=0
+   - Saturated rings: neighbor=0, delta=0
+   - Heterocycles: neighbor=0, delta=0
+   - Aromatic atoms: 12/22
+   
+   alert_screening:
+   - Alert categories: Ester / phenol ester / carbonate, Skin sensitization, Electrophilic agents, Reactive metabolite formation (idiosyncratic toxicity), Reactive / unstable / toxic groups
+   - Category count: 5
+
+2. O=C(O)c1ccccc1C(=O)O (similarity: 0.52, label: A)
+   molecular_profile:
+   - Molecular weight: neighbor=166.13 Da, delta=-14.03 Da
+   - Heavy atoms: neighbor=12, delta=-1
+   - Heteroatoms: neighbor=4, delta=0
+   - logP: neighbor=1.08, delta=-0.23
+   - TPSA: neighbor=74.60 Å², delta=+11.00 Å²
+   - H-bond donors: neighbor=2, delta=+1
+   - H-bond acceptors: neighbor=2, delta=-1
+   - Rotatable bonds: neighbor=2, delta=0
+   - Fsp3: neighbor=0.00, delta=-0.11
+   - Bertz complexity: neighbor=296.58, delta=-46.64
+   - Charge polarization: neighbor=0.81, delta=-0.00
+   - Neutral fraction at pH 7.4: neighbor=0.0001, delta=-0.0000
+   - PMI NPR1: neighbor=0.5245, delta=+0.0618
+   - PMI NPR2: neighbor=0.5686, delta=-0.0897
+   - Shape class: intermediate
+   
+   ionization_and_solubility:
+   - Strongest basic pKa: neighbor=n/a, delta=n/a
+   - Strongest acidic pKa: neighbor=3.21, delta=-0.18
+   - Basic site count: neighbor=0, delta=0
+   - Acidic site count: neighbor=2, delta=+1
+   - Ionization state: acid (charge -2)
+   - Ambiguous near pH 7.4: No
+   - LogD at pH 7.4: neighbor=-3.11, delta=-0.41
+   - Solubility logS: neighbor=-1.56 log(mol/L), delta=-0.10 log(mol/L)
+   
+   structure_and_topology:
+   - Functional groups: carboxylic acid, alcohol, benzene
+   - Total rings: neighbor=1, delta=0
+   - Aromatic rings: neighbor=1, delta=0
+   - Aliphatic rings: neighbor=0, delta=0
+   - Saturated rings: neighbor=0, delta=0
+   - Heterocycles: neighbor=0, delta=0
+   - Aromatic atoms: 6/12
+   
+   alert_screening:
+   - Alert categories: Reactive / unstable group, Other structural flags, Reactive metabolite formation (idiosyncratic toxicity)
+   - Category count: 3
+
+3. CC(=O)Nc1ccc(OC(=O)c2ccccc2OC(C)=O)cc1 (similarity: 0.49, label: A)
+   molecular_profile:
+   - Molecular weight: neighbor=313.31 Da, delta=+133.15 Da
+   - Heavy atoms: neighbor=23, delta=+10
+   - Heteroatoms: neighbor=6, delta=+2
+   - logP: neighbor=2.79, delta=+1.48
+   - TPSA: neighbor=81.70 Å², delta=+18.10 Å²
+   - H-bond donors: neighbor=1, delta=0
+   - H-bond acceptors: neighbor=5, delta=+2
+   - Rotatable bonds: neighbor=4, delta=+2
+   - Fsp3: neighbor=0.12, delta=+0.01
+   - Bertz complexity: neighbor=736.90, delta=+393.68
+   - Charge polarization: neighbor=0.77, delta=-0.04
+   - Neutral fraction at pH 7.4: neighbor=0.9994, delta=+0.9993
+   - PMI NPR1: neighbor=0.1540, delta=-0.3087
+   - PMI NPR2: neighbor=0.9394, delta=+0.2811
+   - Shape class: disc-like
+   
+   ionization_and_solubility:
+   - Strongest basic pKa: neighbor=4.18, delta=n/a
+   - Strongest acidic pKa: neighbor=13.80, delta=+10.41
+   - Basic site count: neighbor=1, delta=+1
+   - Acidic site count: neighbor=1, delta=0
+   - Ionization state: neutral (charge 0)
+   - Ambiguous near pH 7.4: No
+   - LogD at pH 7.4: neighbor=2.79, delta=+5.49
+   - Solubility logS: neighbor=-2.74 log(mol/L), delta=-1.28 log(mol/L)
+   
+   structure_and_topology:
+   - Functional groups: carboxylic ester, amide, ether, secondary amine, benzene
+   - Total rings: neighbor=2, delta=+1
+   - Aromatic rings: neighbor=2, delta=+1
+   - Aliphatic rings: neighbor=0, delta=0
+   - Saturated rings: neighbor=0, delta=0
+   - Heterocycles: neighbor=0, delta=0
+   - Aromatic atoms: 12/23
+   
+   alert_screening:
+   - Alert categories: Ester / phenol ester / carbonate, Skin sensitization, Genotoxic carcinogenicity / mutagenicity, Electrophilic agents, Reactive / unstable / toxic groups
+   - Category count: 5

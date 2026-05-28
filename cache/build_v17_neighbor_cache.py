@@ -49,7 +49,7 @@ def collect_all_smiles(data_dir: str) -> list:
 
 def _compute_entry(smiles: str) -> dict:
     try:
-        from openrlhf.tools.therapeutic_tools.v17_cache import compute_artifacts
+        from openrlhf.tools.therapeutic_tools.tools.v17_cache import compute_artifacts
 
         return compute_artifacts(smiles)
     except Exception as e:

@@ -75,8 +75,8 @@ def main() -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     from rdkit import Chem
-    from openrlhf.tools.therapeutic_tools.safety import screen_safety
-    from openrlhf.tools.therapeutic_tools.three_d import get_3d_properties
+    from openrlhf.tools.therapeutic_tools.utils.safety import screen_safety
+    from openrlhf.tools.therapeutic_tools.utils.three_d import get_3d_properties
 
     smiles_list = collect_smiles()
     print(f"Collected {len(smiles_list)} unique SMILES")

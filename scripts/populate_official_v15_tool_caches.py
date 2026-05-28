@@ -197,7 +197,7 @@ def append_safety_cache(smiles_variants: Iterable[tuple[str, bool]]) -> int:
     smiles_variants = list(smiles_variants)
     if not smiles_variants:
         return 0
-    from openrlhf.tools.therapeutic_tools.safety import screen_safety
+    from openrlhf.tools.therapeutic_tools.utils.safety import screen_safety
 
     written = 0
     with SAFETY_CACHE.open("a") as out:
@@ -290,7 +290,7 @@ def main() -> None:
         print(f"safety appended {added} rows")
 
     if not args.skip_ring_systems:
-        from openrlhf.tools.therapeutic_tools.ring_systems import analyze_ring_systems
+        from openrlhf.tools.therapeutic_tools.utils.ring_systems import analyze_ring_systems
 
         ring_done = load_jsonl_keys(RING_SYSTEMS_CACHE)
         ring_missing = [s for s in smiles if s not in ring_done]
@@ -298,7 +298,7 @@ def main() -> None:
         print(f"ring_systems appended {added} rows")
 
     if not args.skip_v17_groups:
-        from openrlhf.tools.therapeutic_tools.v17 import (
+        from openrlhf.tools.therapeutic_tools.tools.v17 import (
             _compute_ionization_and_solubility_v17_uncached,
             _compute_molecular_profile_v17_uncached,
             _compute_structure_and_topology_v17_uncached,

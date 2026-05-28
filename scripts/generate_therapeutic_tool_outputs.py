@@ -10,13 +10,15 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -24,7 +26,7 @@ if str(REPO_ROOT) not in sys.path:
 DEFAULT_SMILES = "CC(=O)Oc1ccccc1C(=O)O"
 DEFAULT_NAME = "aspirin"
 DEFAULT_TASK = "AMES"
-DEFAULT_OUTPUT_DIR = REPO_ROOT / "openrlhf" / "tools" / "therapeutic_tools" / "tool_outputs"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "tools" / "therapeutic_tools" / "tool_auditing"
 
 
 @dataclass(frozen=True)
@@ -54,7 +56,7 @@ def _render_section(title: str, body: str) -> str:
 
 
 def _render_v10(smiles: str, task_name: str) -> str:
-    mod = importlib.import_module("openrlhf.tools.therapeutic_tools.v10")
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v10")
     parts = [
         _render_section("get_molecular_properties", mod.get_molecular_properties(smiles)),
         _render_section("get_similar_neighbors", mod.get_similar_neighbors(smiles, task_name)),
@@ -82,54 +84,86 @@ def _render_features_version(module_name: str, smiles: str, task_name: str, incl
 
 
 def _render_v11(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v11", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v11", smiles, task_name, True)
 
 
 def _render_v12(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v12", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v12", smiles, task_name, True)
 
 
 def _render_v13(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v13", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v13", smiles, task_name, True)
 
 
 def _render_v14(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v14", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v14", smiles, task_name, True)
 
 
 def _render_v14_no_neighbor(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v14_no_neighbor", smiles, task_name, False)
+    return _render_features_version("tools.therapeutic_tools.tools.v14_no_neighbor", smiles, task_name, False)
 
 
 def _render_v14_consolidated(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v14_consolidated", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v14_consolidated", smiles, task_name, True)
 
 
 def _render_v14_consolidated_no_neighbor(smiles: str, task_name: str) -> str:
     return _render_features_version(
-        "openrlhf.tools.therapeutic_tools.v14_consolidated_no_neighbor", smiles, task_name, False
+        "tools.therapeutic_tools.tools.v14_consolidated_no_neighbor", smiles, task_name, False
     )
 
 
 def _render_v15(smiles: str, task_name: str) -> str:
-    mod = importlib.import_module("openrlhf.tools.therapeutic_tools.v15")
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v15")
     parts = [
-        _render_section("get_mol_properties_and_fg", mod.get_mol_properties_and_fg(smiles)),
+        _render_section("get_mol_properties_and_fg", mod.get_mol_properties_and_fg(smiles, task=task_name)),
         _render_section("compare_similar_mols", mod.compare_similar_mols(smiles, task=task_name)),
     ]
     return "\n".join(parts).rstrip() + "\n"
 
 
+def _render_v15_no_neighbor(smiles: str, task_name: str) -> str:
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v15_no_neighbor")
+    return _render_section("get_mol_properties_and_fg", mod.get_mol_properties_and_fg(smiles, task=task_name))
+
+
+def _render_v15_neighbor_only(smiles: str, task_name: str) -> str:
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v15_neighbor_only")
+    return _render_section("compare_similar_mols", mod.compare_similar_mols(smiles, task=task_name))
+
+
+def _render_v15_neighbor_only_4(smiles: str, task_name: str) -> str:
+    payload = json.dumps({"smiles": smiles, "task": task_name})
+    code = """
+import json
+import sys
+from tools.therapeutic_tools.tools import v15_neighbor_only_4
+payload = json.loads(sys.argv[1])
+print(v15_neighbor_only_4.compare_similar_mols(payload["smiles"], task=payload["task"]))
+"""
+    proc = subprocess.run(
+        [sys.executable, "-c", code, payload],
+        cwd=str(REPO_ROOT),
+        text=True,
+        capture_output=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        message = (proc.stderr or proc.stdout or f"subprocess exited {proc.returncode}").strip()
+        return _render_section("generation_error", message)
+    return _render_section("compare_similar_mols", proc.stdout)
+
+
 def _render_v16(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v16", smiles, task_name, True)
+    return _render_features_version("tools.therapeutic_tools.tools.v16", smiles, task_name, True)
 
 
 def _render_v16_no_neighbor(smiles: str, task_name: str) -> str:
-    return _render_features_version("openrlhf.tools.therapeutic_tools.v16_no_neighbor", smiles, task_name, False)
+    return _render_features_version("tools.therapeutic_tools.tools.v16_no_neighbor", smiles, task_name, False)
 
 
 def _render_v17(smiles: str, task_name: str) -> str:
-    mod = importlib.import_module("openrlhf.tools.therapeutic_tools.v17")
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v17")
     parts = [
         _render_section(
             "get_features",
@@ -143,6 +177,11 @@ def _render_v17(smiles: str, task_name: str) -> str:
     return "\n".join(parts).rstrip() + "\n"
 
 
+def _render_v17_get_features_only(smiles: str, task_name: str) -> str:
+    mod = importlib.import_module("tools.therapeutic_tools.tools.v17_get_features_only")
+    return _render_section("get_features", mod.get_features(smiles, list(mod.FEATURE_NAMES)))
+
+
 OUTPUT_SPECS: list[OutputSpec] = [
     OutputSpec("v10", _render_v10),
     OutputSpec("v11", _render_v11),
@@ -153,9 +192,13 @@ OUTPUT_SPECS: list[OutputSpec] = [
     OutputSpec("v14_consolidated", _render_v14_consolidated),
     OutputSpec("v14_consolidated_no_neighbor", _render_v14_consolidated_no_neighbor),
     OutputSpec("v15", _render_v15),
+    OutputSpec("v15_no_neighbor", _render_v15_no_neighbor),
+    OutputSpec("v15_neighbor_only", _render_v15_neighbor_only),
+    OutputSpec("v15_neighbor_only_4", _render_v15_neighbor_only_4),
     OutputSpec("v16", _render_v16),
     OutputSpec("v16_no_neighbor", _render_v16_no_neighbor),
     OutputSpec("v17", _render_v17),
+    OutputSpec("v17_get_features_only", _render_v17_get_features_only),
 ]
 
 
@@ -172,7 +215,10 @@ def generate_outputs(
         if requested_versions and spec.version not in requested_versions:
             continue
         content = "\n".join(_header(spec.version, smiles, molecule_name, task_name))
-        content += spec.render(smiles, task_name)
+        try:
+            content += spec.render(smiles, task_name)
+        except BaseException as exc:
+            content += _render_section("generation_error", f"{type(exc).__name__}: {exc}")
         out_path = output_dir / f"{spec.version}.txt"
         out_path.write_text(content, encoding="utf-8")
         print(f"Wrote {out_path}")

@@ -23,15 +23,15 @@ if "MPLCONFIGDIR" not in os.environ:
     os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib-openrlhf"
 
 
-from openrlhf.tools.therapeutic_tools import metadata_cache
-from openrlhf.tools.therapeutic_tools.adme import assess_adme_properties
-from openrlhf.tools.therapeutic_tools.functional_groups import analyze_functional_groups
-from openrlhf.tools.therapeutic_tools.metabolism import predict_metabolites
-from openrlhf.tools.therapeutic_tools.molecule_profile import get_molecule_profile
-from openrlhf.tools.therapeutic_tools.ring_systems import analyze_ring_systems
-from openrlhf.tools.therapeutic_tools.safety import screen_safety
-from openrlhf.tools.therapeutic_tools.three_d import get_3d_properties
-from openrlhf.tools.therapeutic_tools.v10 import get_molecular_properties
+from openrlhf.tools.therapeutic_tools.utils import metadata_cache
+from openrlhf.tools.therapeutic_tools.utils.adme import assess_adme_properties
+from openrlhf.tools.therapeutic_tools.utils.functional_groups import analyze_functional_groups
+from openrlhf.tools.therapeutic_tools.utils.metabolism import predict_metabolites
+from openrlhf.tools.therapeutic_tools.utils.molecule_profile import get_molecule_profile
+from openrlhf.tools.therapeutic_tools.utils.ring_systems import analyze_ring_systems
+from openrlhf.tools.therapeutic_tools.utils.safety import screen_safety
+from openrlhf.tools.therapeutic_tools.utils.three_d import get_3d_properties
+from openrlhf.tools.therapeutic_tools.tools.v10 import get_molecular_properties
 
 
 def load_default_smiles(limit: int = 10) -> list[str]:

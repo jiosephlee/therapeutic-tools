@@ -1,0 +1,82 @@
+Therapeutic tool outputs for v14_no_neighbor
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_features ===
+Molecular Weight:
+- Molecular weight: 180.16 Da
+
+Heavy Atom Count:
+- Heavy atoms: 13
+
+Heteroatom Count:
+- Heteroatoms: 4
+
+logP:
+- logP (Wildman-Crippen): 1.31
+
+TPSA:
+- TPSA: 63.60 Å²
+
+H-Bond Donors:
+- H-bond donors: 1
+
+H-Bond Acceptors:
+- H-bond acceptors: 3
+
+Rotatable Bonds:
+- Rotatable bonds: 2
+
+Fraction CSP3:
+- Fraction sp3 carbons (Fsp3): 0.11
+
+Molar Refractivity:
+- Molar refractivity: 44.71
+
+Complexity Metrics:
+- Bertz complexity: 343.22
+- Topology: HallKierAlpha=-1.84, Kappa1=9.25, Kappa2=3.71, Kappa3=2.30, BalabanJ=3.04
+- Amide bonds: 0
+- Stereocenters: 0
+
+Electronic Properties:
+- Gasteiger charges: max=0.34 (atom 10, C), min=-0.48 (atom 12, O)
+- Charge polarization: 0.82
+- EState indices: max=10.61 (nucleophilic proxy), min=-1.11 (electrophilic proxy)
+
+functional_groups: Error - No module named 'openrlhf'
+
+ring_systems: Error - No module named 'openrlhf'
+
+3d_properties: Error - No module named 'openrlhf'
+
+structural_alerts: Error - No module named 'openrlhf'
+
+pKa Summary:
+- Acidic pKa values: 3.39
+
+Ionization at pH 7.4: acid, charge -1
+- Dominant form: CC(=O)Oc1ccccc1C(=O)[O-]
+- Ambiguous (pKa near pH): No
+
+LogD at pH 7.4: -2.70
+
+Solubility: logS = -1.46 log(mol/L)
+
+Neutral fraction (pH 7.4):
+- Estimated fraction of neutral microspecies: 0.0001
+
+Labute ASA:
+- Labute surface area: 74.7600
+
+Nitrogen and oxygen atom count:
+- Nitrogen and oxygen heavy-atom count: 4
+
+Aliphatic carbocycles:
+- Aliphatic carbocycle count: 0
+
+Aromatic carbocycles:
+- Aromatic carbocycle count: 1
+
+Saturated carbocycles:
+- Saturated carbocycle count: 0

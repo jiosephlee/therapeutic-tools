@@ -1,0 +1,329 @@
+Therapeutic tool outputs for v15
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_mol_properties_and_fg ===
+neutral fraction: 0.0001
+estimated logD: -2.7012
+strongest acidic pKa: 3.3887
+strongest basic pKa: not applicable (no basic site)
+number of acidic sites: 1
+number of basic sites: 0
+number of ionizable sites: 1
+exact molecular weight: 180.0423
+fraction of sp3 carbons: 0.1111
+heavy-atom count: 13
+heavy-atom molecular weight: 172.095
+Labute surface area: 74.7571
+maximum absolute partial charge: 0.4775
+maximum partial charge: 0.339
+minimum absolute partial charge: 0.339
+minimum partial charge: -0.4775
+estimated logP: 1.3101
+molecular weight: 180.159
+NH/OH group count: 1
+nitrogen/oxygen atom count: 4
+aliphatic carbocycle count: 0
+aliphatic heterocycle count: 0
+aliphatic ring count: 0
+aromatic carbocycle count: 1
+aromatic heterocycle count: 0
+aromatic ring count: 1
+hydrogen-bond acceptor count: 3
+hydrogen-bond donor count: 1
+heteroatom count: 4
+rotatable-bond count: 2
+saturated carbocycle count: 0
+saturated heterocycle count: 0
+saturated ring count: 0
+ring count: 1
+topological polar surface area: 63.6
+QED drug-likeness: 0.5501
+
+functional groups:
+benzene: 1
+carboxylic acid: 1
+carboxylic ester: 1
+
+=== compare_similar_mols ===
+Definitions: query is the target molecule being analyzed, neighbor is a retrieved training-set analog for this task, and delta means query value minus neighbor value.
+
+positive neighbors:
+Neighbor 1
+label: is mutagenic
+similarity: 0.3733
+smiles: CN(C)c1ccc(N=Nc2ccccc2C(=O)O)cc1
+properties:
+neutral fraction: neighbor=0.0002 | query=0.0001 | delta=-0.0001
+estimated logD: neighbor=0.0544 | query=-2.7012 | delta=-2.7556
+strongest acidic pKa: neighbor=3.592 | query=3.3887 | delta=-0.2033
+strongest basic pKa: neighbor=5.3363 | query=not applicable (no basic site) | delta=not defined because one molecule has no basic site
+number of acidic sites: neighbor=1 | query=1 | delta=+0
+number of basic sites: neighbor=1 | query=0 | delta=-1
+number of ionizable sites: neighbor=2 | query=1 | delta=-1
+exact molecular weight: neighbor=269.1164 | query=180.0423 | delta=-89.0742
+fraction of sp3 carbons: neighbor=0.1333 | query=0.1111 | delta=-0.0222
+heavy-atom count: neighbor=20 | query=13 | delta=-7
+heavy-atom molecular weight: neighbor=254.184 | query=172.095 | delta=-82.089
+Labute surface area: neighbor=116.7457 | query=74.7571 | delta=-41.9886
+maximum absolute partial charge: neighbor=0.4776 | query=0.4775 | delta=+0
+maximum partial charge: neighbor=0.3375 | query=0.339 | delta=+0.0015
+minimum absolute partial charge: neighbor=0.3375 | query=0.339 | delta=+0.0015
+minimum partial charge: neighbor=-0.4776 | query=-0.4775 | delta=+0
+estimated logP: neighbor=3.8662 | query=1.3101 | delta=-2.5561
+molecular weight: neighbor=269.304 | query=180.159 | delta=-89.145
+NH/OH group count: neighbor=1 | query=1 | delta=+0
+nitrogen/oxygen atom count: neighbor=5 | query=4 | delta=-1
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic ring count: neighbor=0 | query=0 | delta=+0
+aromatic carbocycle count: neighbor=2 | query=1 | delta=-1
+aromatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aromatic ring count: neighbor=2 | query=1 | delta=-1
+hydrogen-bond acceptor count: neighbor=4 | query=3 | delta=-1
+hydrogen-bond donor count: neighbor=1 | query=1 | delta=+0
+heteroatom count: neighbor=5 | query=4 | delta=-1
+rotatable-bond count: neighbor=4 | query=2 | delta=-2
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=2 | query=1 | delta=-1
+topological polar surface area: neighbor=65.26 | query=63.6 | delta=-1.66
+QED drug-likeness: neighbor=0.8568 | query=0.5501 | delta=-0.3067
+functional group differences:
+azo: neighbor=1 | query=0 | delta=-1
+benzene: neighbor=2 | query=1 | delta=-1
+carboxylic ester: neighbor=0 | query=1 | delta=+1
+tertiary mixed amine: neighbor=1 | query=0 | delta=-1
+
+Neighbor 2
+label: is mutagenic
+similarity: 0.3202
+smiles: CC(=O)Oc1cc([N+](=O)[O-])c2ccc3cccc4ccc1c2c43
+properties:
+neutral fraction: neighbor=1 | query=0.0001 | delta=-0.9999
+estimated logD: neighbor=4.4175 | query=-2.7012 | delta=-7.1187
+strongest acidic pKa: neighbor=not applicable (no acidic site) | query=3.3887 | delta=not defined because one molecule has no acidic site
+strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not defined because neither molecule has a basic site
+number of acidic sites: neighbor=0 | query=1 | delta=+1
+number of basic sites: neighbor=0 | query=0 | delta=+0
+number of ionizable sites: neighbor=0 | query=1 | delta=+1
+exact molecular weight: neighbor=305.0688 | query=180.0423 | delta=-125.0265
+fraction of sp3 carbons: neighbor=0.0556 | query=0.1111 | delta=+0.0556
+heavy-atom count: neighbor=23 | query=13 | delta=-10
+heavy-atom molecular weight: neighbor=294.201 | query=172.095 | delta=-122.106
+Labute surface area: neighbor=130.1133 | query=74.7571 | delta=-55.3563
+maximum absolute partial charge: neighbor=0.4258 | query=0.4775 | delta=+0.0517
+maximum partial charge: neighbor=0.3075 | query=0.339 | delta=+0.0315
+minimum absolute partial charge: neighbor=0.3075 | query=0.339 | delta=+0.0315
+minimum partial charge: neighbor=-0.4258 | query=-0.4775 | delta=-0.0517
+estimated logP: neighbor=4.4175 | query=1.3101 | delta=-3.1074
+molecular weight: neighbor=305.289 | query=180.159 | delta=-125.13
+NH/OH group count: neighbor=0 | query=1 | delta=+1
+nitrogen/oxygen atom count: neighbor=5 | query=4 | delta=-1
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic ring count: neighbor=0 | query=0 | delta=+0
+aromatic carbocycle count: neighbor=4 | query=1 | delta=-3
+aromatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aromatic ring count: neighbor=4 | query=1 | delta=-3
+hydrogen-bond acceptor count: neighbor=4 | query=3 | delta=-1
+hydrogen-bond donor count: neighbor=0 | query=1 | delta=+1
+heteroatom count: neighbor=5 | query=4 | delta=-1
+rotatable-bond count: neighbor=2 | query=2 | delta=+0
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=4 | query=1 | delta=-3
+topological polar surface area: neighbor=69.44 | query=63.6 | delta=-5.84
+QED drug-likeness: neighbor=0.1807 | query=0.5501 | delta=+0.3695
+functional group differences:
+benzene: neighbor=4 | query=1 | delta=-3
+carboxylic acid: neighbor=0 | query=1 | delta=+1
+nitro: neighbor=1 | query=0 | delta=-1
+
+Neighbor 3
+label: is mutagenic
+similarity: 0.3142
+smiles: COc1cccc2c1ccc1c(C(=O)O)cc3c(c12)OCO3
+properties:
+neutral fraction: neighbor=0.0002 | query=0.0001 | delta=-0.0001
+estimated logD: neighbor=-0.2716 | query=-2.7012 | delta=-2.4296
+strongest acidic pKa: neighbor=3.7 | query=3.3887 | delta=-0.3113
+strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not defined because neither molecule has a basic site
+number of acidic sites: neighbor=1 | query=1 | delta=+0
+number of basic sites: neighbor=0 | query=0 | delta=+0
+number of ionizable sites: neighbor=1 | query=1 | delta=+0
+exact molecular weight: neighbor=296.0685 | query=180.0423 | delta=-116.0262
+fraction of sp3 carbons: neighbor=0.1176 | query=0.1111 | delta=-0.0065
+heavy-atom count: neighbor=22 | query=13 | delta=-9
+heavy-atom molecular weight: neighbor=284.182 | query=172.095 | delta=-112.087
+Labute surface area: neighbor=125.1801 | query=74.7571 | delta=-50.4231
+maximum absolute partial charge: neighbor=0.4961 | query=0.4775 | delta=-0.0186
+maximum partial charge: neighbor=0.336 | query=0.339 | delta=+0.003
+minimum absolute partial charge: neighbor=0.336 | query=0.339 | delta=+0.003
+minimum partial charge: neighbor=-0.4961 | query=-0.4775 | delta=+0.0186
+estimated logP: neighbor=3.4285 | query=1.3101 | delta=-2.1184
+molecular weight: neighbor=296.278 | query=180.159 | delta=-116.119
+NH/OH group count: neighbor=1 | query=1 | delta=+0
+nitrogen/oxygen atom count: neighbor=5 | query=4 | delta=-1
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=1 | query=0 | delta=-1
+aliphatic ring count: neighbor=1 | query=0 | delta=-1
+aromatic carbocycle count: neighbor=3 | query=1 | delta=-2
+aromatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aromatic ring count: neighbor=3 | query=1 | delta=-2
+hydrogen-bond acceptor count: neighbor=4 | query=3 | delta=-1
+hydrogen-bond donor count: neighbor=1 | query=1 | delta=+0
+heteroatom count: neighbor=5 | query=4 | delta=-1
+rotatable-bond count: neighbor=2 | query=2 | delta=+0
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=4 | query=1 | delta=-3
+topological polar surface area: neighbor=64.99 | query=63.6 | delta=-1.39
+QED drug-likeness: neighbor=0.7339 | query=0.5501 | delta=-0.1838
+functional group differences:
+acetal: neighbor=1 | query=0 | delta=-1
+alkyl aryl ether: neighbor=1 | query=0 | delta=-1
+benzene: neighbor=3 | query=1 | delta=-2
+carboxylic ester: neighbor=0 | query=1 | delta=+1
+
+negative neighbors:
+Neighbor 4
+label: is not mutagenic
+similarity: 0.8429
+smiles: CC(=O)Oc1ccccc1C(=O)Oc1ccccc1C(=O)O
+properties:
+neutral fraction: neighbor=0.0001 | query=0.0001 | delta=+0
+estimated logD: neighbor=-1.7605 | query=-2.7012 | delta=-0.9407
+strongest acidic pKa: neighbor=3.1102 | query=3.3887 | delta=+0.2785
+strongest basic pKa: neighbor=not applicable (no basic site) | query=not applicable (no basic site) | delta=not defined because neither molecule has a basic site
+number of acidic sites: neighbor=1 | query=1 | delta=+0
+number of basic sites: neighbor=0 | query=0 | delta=+0
+number of ionizable sites: neighbor=1 | query=1 | delta=+0
+exact molecular weight: neighbor=300.0634 | query=180.0423 | delta=-120.0211
+fraction of sp3 carbons: neighbor=0.0625 | query=0.1111 | delta=+0.0486
+heavy-atom count: neighbor=22 | query=13 | delta=-9
+heavy-atom molecular weight: neighbor=288.17 | query=172.095 | delta=-116.075
+Labute surface area: neighbor=125.4542 | query=74.7571 | delta=-50.6971
+maximum absolute partial charge: neighbor=0.4775 | query=0.4775 | delta=+0
+maximum partial charge: neighbor=0.3469 | query=0.339 | delta=-0.0079
+minimum absolute partial charge: neighbor=0.3469 | query=0.339 | delta=-0.0079
+minimum partial charge: neighbor=-0.4775 | query=-0.4775 | delta=+0
+estimated logP: neighbor=2.5293 | query=1.3101 | delta=-1.2192
+molecular weight: neighbor=300.266 | query=180.159 | delta=-120.107
+NH/OH group count: neighbor=1 | query=1 | delta=+0
+nitrogen/oxygen atom count: neighbor=6 | query=4 | delta=-2
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic ring count: neighbor=0 | query=0 | delta=+0
+aromatic carbocycle count: neighbor=2 | query=1 | delta=-1
+aromatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aromatic ring count: neighbor=2 | query=1 | delta=-1
+hydrogen-bond acceptor count: neighbor=5 | query=3 | delta=-2
+hydrogen-bond donor count: neighbor=1 | query=1 | delta=+0
+heteroatom count: neighbor=6 | query=4 | delta=-2
+rotatable-bond count: neighbor=4 | query=2 | delta=-2
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=2 | query=1 | delta=-1
+topological polar surface area: neighbor=89.9 | query=63.6 | delta=-26.3
+QED drug-likeness: neighbor=0.689 | query=0.5501 | delta=-0.1389
+functional group differences:
+benzene: neighbor=2 | query=1 | delta=-1
+carboxylic ester: neighbor=2 | query=1 | delta=-1
+
+Neighbor 5
+label: is not mutagenic
+similarity: 0.488
+smiles: CC(=O)Nc1ccc(OC(=O)c2ccccc2OC(C)=O)cc1
+properties:
+neutral fraction: neighbor=0.9994 | query=0.0001 | delta=-0.9993
+estimated logD: neighbor=2.7892 | query=-2.7012 | delta=-5.4904
+strongest acidic pKa: neighbor=13.7978 | query=3.3887 | delta=-10.4091
+strongest basic pKa: neighbor=4.1808 | query=not applicable (no basic site) | delta=not defined because one molecule has no basic site
+number of acidic sites: neighbor=1 | query=1 | delta=+0
+number of basic sites: neighbor=1 | query=0 | delta=-1
+number of ionizable sites: neighbor=2 | query=1 | delta=-1
+exact molecular weight: neighbor=313.095 | query=180.0423 | delta=-133.0528
+fraction of sp3 carbons: neighbor=0.1176 | query=0.1111 | delta=-0.0065
+heavy-atom count: neighbor=23 | query=13 | delta=-10
+heavy-atom molecular weight: neighbor=298.189 | query=172.095 | delta=-126.094
+Labute surface area: neighbor=132.5747 | query=74.7571 | delta=-57.8177
+maximum absolute partial charge: neighbor=0.4258 | query=0.4775 | delta=+0.0517
+maximum partial charge: neighbor=0.3468 | query=0.339 | delta=-0.0078
+minimum absolute partial charge: neighbor=0.3468 | query=0.339 | delta=-0.0078
+minimum partial charge: neighbor=-0.4258 | query=-0.4775 | delta=-0.0517
+estimated logP: neighbor=2.7895 | query=1.3101 | delta=-1.4794
+molecular weight: neighbor=313.309 | query=180.159 | delta=-133.15
+NH/OH group count: neighbor=1 | query=1 | delta=+0
+nitrogen/oxygen atom count: neighbor=6 | query=4 | delta=-2
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic ring count: neighbor=0 | query=0 | delta=+0
+aromatic carbocycle count: neighbor=2 | query=1 | delta=-1
+aromatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aromatic ring count: neighbor=2 | query=1 | delta=-1
+hydrogen-bond acceptor count: neighbor=5 | query=3 | delta=-2
+hydrogen-bond donor count: neighbor=1 | query=1 | delta=+0
+heteroatom count: neighbor=6 | query=4 | delta=-2
+rotatable-bond count: neighbor=4 | query=2 | delta=-2
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=2 | query=1 | delta=-1
+topological polar surface area: neighbor=81.7 | query=63.6 | delta=-18.1
+QED drug-likeness: neighbor=0.6931 | query=0.5501 | delta=-0.143
+functional group differences:
+benzene: neighbor=2 | query=1 | delta=-1
+carboxylic acid: neighbor=0 | query=1 | delta=+1
+carboxylic ester: neighbor=2 | query=1 | delta=-1
+secondary amide: neighbor=1 | query=0 | delta=-1
+
+Neighbor 6
+label: is not mutagenic
+similarity: 0.4165
+smiles: CC(=O)Oc1cccc2cccnc12
+properties:
+neutral fraction: neighbor=1 | query=0.0001 | delta=-0.9999
+estimated logD: neighbor=2.1601 | query=-2.7012 | delta=-4.8613
+strongest acidic pKa: neighbor=not applicable (no acidic site) | query=3.3887 | delta=not defined because one molecule has no acidic site
+strongest basic pKa: neighbor=2.9711 | query=not applicable (no basic site) | delta=not defined because one molecule has no basic site
+number of acidic sites: neighbor=0 | query=1 | delta=+1
+number of basic sites: neighbor=1 | query=0 | delta=-1
+number of ionizable sites: neighbor=1 | query=1 | delta=+0
+exact molecular weight: neighbor=187.0633 | query=180.0423 | delta=-7.0211
+fraction of sp3 carbons: neighbor=0.0909 | query=0.1111 | delta=+0.0202
+heavy-atom count: neighbor=14 | query=13 | delta=-1
+heavy-atom molecular weight: neighbor=178.126 | query=172.095 | delta=-6.031
+Labute surface area: neighbor=81.3377 | query=74.7571 | delta=-6.5806
+maximum absolute partial charge: neighbor=0.4244 | query=0.4775 | delta=+0.0532
+maximum partial charge: neighbor=0.3076 | query=0.339 | delta=+0.0314
+minimum absolute partial charge: neighbor=0.3076 | query=0.339 | delta=+0.0314
+minimum partial charge: neighbor=-0.4244 | query=-0.4775 | delta=-0.0532
+estimated logP: neighbor=2.1601 | query=1.3101 | delta=-0.85
+molecular weight: neighbor=187.198 | query=180.159 | delta=-7.039
+NH/OH group count: neighbor=0 | query=1 | delta=+1
+nitrogen/oxygen atom count: neighbor=3 | query=4 | delta=+1
+aliphatic carbocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic heterocycle count: neighbor=0 | query=0 | delta=+0
+aliphatic ring count: neighbor=0 | query=0 | delta=+0
+aromatic carbocycle count: neighbor=1 | query=1 | delta=+0
+aromatic heterocycle count: neighbor=1 | query=0 | delta=-1
+aromatic ring count: neighbor=2 | query=1 | delta=-1
+hydrogen-bond acceptor count: neighbor=3 | query=3 | delta=+0
+hydrogen-bond donor count: neighbor=0 | query=1 | delta=+1
+heteroatom count: neighbor=3 | query=4 | delta=+1
+rotatable-bond count: neighbor=1 | query=2 | delta=+1
+saturated carbocycle count: neighbor=0 | query=0 | delta=+0
+saturated heterocycle count: neighbor=0 | query=0 | delta=+0
+saturated ring count: neighbor=0 | query=0 | delta=+0
+ring count: neighbor=2 | query=1 | delta=-1
+topological polar surface area: neighbor=39.19 | query=63.6 | delta=+24.41
+QED drug-likeness: neighbor=0.5069 | query=0.5501 | delta=+0.0432
+functional group differences:
+benzene: neighbor=0 | query=1 | delta=+1
+carboxylic acid: neighbor=0 | query=1 | delta=+1
+quinoline: neighbor=1 | query=0 | delta=-1

@@ -1,0 +1,46 @@
+Therapeutic tool outputs for v15_no_neighbor
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== get_mol_properties_and_fg ===
+neutral fraction: 0.0001
+estimated logD: -2.7012
+strongest acidic pKa: 3.3887
+strongest basic pKa: not applicable (no basic site)
+number of acidic sites: 1
+number of basic sites: 0
+number of ionizable sites: 1
+exact molecular weight: 180.0423
+fraction of sp3 carbons: 0.1111
+heavy-atom count: 13
+heavy-atom molecular weight: 172.095
+Labute surface area: 74.7571
+maximum absolute partial charge: 0.4775
+maximum partial charge: 0.339
+minimum absolute partial charge: 0.339
+minimum partial charge: -0.4775
+estimated logP: 1.3101
+molecular weight: 180.159
+NH/OH group count: 1
+nitrogen/oxygen atom count: 4
+aliphatic carbocycle count: 0
+aliphatic heterocycle count: 0
+aliphatic ring count: 0
+aromatic carbocycle count: 1
+aromatic heterocycle count: 0
+aromatic ring count: 1
+hydrogen-bond acceptor count: 3
+hydrogen-bond donor count: 1
+heteroatom count: 4
+rotatable-bond count: 2
+saturated carbocycle count: 0
+saturated heterocycle count: 0
+saturated ring count: 0
+ring count: 1
+topological polar surface area: 63.6
+QED drug-likeness: 0.5501
+
+functional groups:
+benzene: 1
+carboxylic acid: 1
+carboxylic ester: 1

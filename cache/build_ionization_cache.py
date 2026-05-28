@@ -53,7 +53,7 @@ _PH = 7.4
 
 
 def compute_ionization(smiles: str) -> dict:
-    from therapeutic_tools.adme import _compact_ionization
+    from therapeutic_tools.utils.adme import _compact_ionization
 
     canonical = _canonicalize(smiles)
     if canonical is None:

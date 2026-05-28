@@ -1,0 +1,52 @@
+Therapeutic tool outputs for v15_neighbor_only_4
+Example molecule: aspirin
+SMILES: CC(=O)Oc1ccccc1C(=O)O
+Task context: AMES
+=== generation_error ===
+[17:00:56] 
+
+****
+Pre-condition Violation
+bad bond stereo
+Violation occurred on line 362 in file /project/build/temp.linux-x86_64-cpython-312/rdkit/Code/GraphMol/Canon.cpp
+Failed Expression: dblBond->getStereo() > Bond::STEREOANY
+----------
+Stacktrace:
+----------
+****
+
+[17:00:56] 
+
+****
+Pre-condition Violation
+bad bond stereo
+Violation occurred on line 362 in file /project/build/temp.linux-x86_64-cpython-312/rdkit/Code/GraphMol/Canon.cpp
+Failed Expression: dblBond->getStereo() > Bond::STEREOANY
+----------
+Stacktrace:
+----------
+****
+
+[17:00:56] 
+
+****
+Pre-condition Violation
+bad bond stereo
+Violation occurred on line 362 in file /project/build/temp.linux-x86_64-cpython-312/rdkit/Code/GraphMol/Canon.cpp
+Failed Expression: dblBond->getStereo() > Bond::STEREOANY
+----------
+Stacktrace:
+----------
+****
+
+[17:00:56] 
+
+****
+Pre-condition Violation
+bad bond stereo
+Violation occurred on line 362 in file /project/build/temp.linux-x86_64-cpython-312/rdkit/Code/GraphMol/Canon.cpp
+Failed Expression: dblBond->getStereo() > Bond::STEREOANY
+----------
+Stacktrace:
+----------
+****
