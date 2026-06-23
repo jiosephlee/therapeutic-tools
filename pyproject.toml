@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "therapeutic-tools"
+version = "0.1.0"
+description = "Self-contained therapeutic chemistry tools and local feature caches."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+therapeutic-tools-doctor = "therapeutic_tools.doctor:main"
+
+[tool.setuptools]
+package-dir = {"therapeutic_tools" = "."}
+packages = [
+  "therapeutic_tools",
+  "therapeutic_tools.legacy",
+  "therapeutic_tools.legacy.tools",
+  "therapeutic_tools.legacy.utils",
+  "therapeutic_tools.tools",
+  "therapeutic_tools.tools.legacy",
+  "therapeutic_tools.utils",
+]
+
+[tool.setuptools.package-data]
+therapeutic_tools = ["cache/cache_manifest.json"]

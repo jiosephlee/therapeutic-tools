@@ -280,7 +280,13 @@ def _get_pka_data(smiles: str, cached) -> dict:
         }
     # Compute live when MolGpKa is available.
     try:
-        from .legacy_tools.pka_related_tools import _mol_from_smiles, _get_pka_predictor
+        try:
+            from .legacy_tools.pka_related_tools import _mol_from_smiles, _get_pka_predictor
+        except ModuleNotFoundError:
+            from openrlhf.tools.therapeutic_tools.legacy_tools.pka_related_tools import (
+                _mol_from_smiles,
+                _get_pka_predictor,
+            )
         mol = _mol_from_smiles(smiles)
         predictor = _get_pka_predictor()
         prediction = predictor.predict(mol)
@@ -311,7 +317,13 @@ def _get_pka_data(smiles: str, cached) -> dict:
 def _get_mapped_pka_smiles(smiles: str):
     """Return the MolGpKa atom-mapped SMILES for display, or None on failure."""
     try:
-        from .legacy_tools.pka_related_tools import _mol_from_smiles, _get_pka_predictor
+        try:
+            from .legacy_tools.pka_related_tools import _mol_from_smiles, _get_pka_predictor
+        except ModuleNotFoundError:
+            from openrlhf.tools.therapeutic_tools.legacy_tools.pka_related_tools import (
+                _mol_from_smiles,
+                _get_pka_predictor,
+            )
         mol = _mol_from_smiles(smiles)
         predictor = _get_pka_predictor()
         prediction = predictor.predict(mol)

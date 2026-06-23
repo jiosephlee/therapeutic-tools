@@ -13,12 +13,15 @@ from functools import lru_cache
 from typing import Any, Mapping, Optional
 
 
-DEFAULT_TRIM_ROOT = "/vast/projects/myatskar/design-documents/joseph/trim"
+DEFAULT_TRIM_ROOT = None
 
 
 def trim_root() -> str:
     """Return the configured TRIM checkout path."""
-    return os.environ.get("TRIM_ROOT", DEFAULT_TRIM_ROOT)
+    root = os.environ.get("TRIM_ROOT")
+    if not root:
+        raise RuntimeError("TRIM_ROOT is not set; TRIM integration is optional and external.")
+    return root
 
 
 @lru_cache(maxsize=1)

@@ -31,6 +31,8 @@ def cache_path(name: str) -> str:
 
 @lru_cache(maxsize=None)
 def _load_cache(name: str) -> Dict[str, str]:
+    if os.environ.get("THERAPEUTIC_TOOLS_CACHE_BACKEND", "").lower() == "duckdb_only":
+        raise RuntimeError("group_string_cache is disabled in THERAPEUTIC_TOOLS_CACHE_BACKEND=duckdb_only")
     path = cache_path(name)
     cache: Dict[str, str] = {}
     if not os.path.exists(path):

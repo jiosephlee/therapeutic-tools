@@ -26,4 +26,4 @@ $PY "$SCRIPT_DIR/build_knn_metrics.py" --embedding-type fingerprint
 
 echo ""
 echo "Done. Fingerprint embeddings:"
-ls "$SCRIPT_DIR/fingerprint/"
+ls "$SCRIPT_DIR/fingerprint/" 2>/dev/null || ls "$SCRIPT_DIR/fingerprints_with_canonicalized/" 2>/dev/null || true

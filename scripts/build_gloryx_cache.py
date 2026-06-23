@@ -48,12 +48,10 @@ TARGET_TASKS = [
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 TOOLS_DIR = SCRIPT_DIR.parent
-REPO_ROOT = TOOLS_DIR.parent.parent.parent  # OpenRLHF-Tools
-TDC_RAW = REPO_ROOT / "data" / "tdc" / "raw"
 CACHE_DIR = TOOLS_DIR / "cache"
+TDC_RAW = Path(os.environ.get("THERAPEUTIC_TOOLS_TDC_DATA_DIR", str(CACHE_DIR / "tdc" / "raw")))
 CACHE_FILE = CACHE_DIR / "gloryx_cache.jsonl"
-# Existing cache from prior work (different path)
-EXISTING_CACHE = Path("/vast/projects/myatskar/design-documents/joseph/therapeutic-tuning/tools/therapeutic_tools/cache/gloryx_cache.jsonl")
+EXISTING_CACHE = Path(os.environ["THERAPEUTIC_TOOLS_LEGACY_GLORYX_CACHE"]) if os.environ.get("THERAPEUTIC_TOOLS_LEGACY_GLORYX_CACHE") else None
 
 
 def collect_smiles() -> list:
@@ -75,6 +73,8 @@ def load_existing_cache() -> set:
     """Load already-cached SMILES from both current and legacy cache files."""
     cached = set()
     for cache_path in [CACHE_FILE, EXISTING_CACHE]:
+        if cache_path is None:
+            continue
         if cache_path.exists():
             with open(cache_path) as f:
                 for line in f:
@@ -88,7 +88,7 @@ def load_existing_cache() -> set:
 
 def copy_existing_cache_entries(needed_smiles: set):
     """Copy relevant entries from legacy cache to current cache file."""
-    if not EXISTING_CACHE.exists():
+    if EXISTING_CACHE is None or not EXISTING_CACHE.exists():
         return 0
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     copied = 0

@@ -14,6 +14,7 @@ import sys
 import json
 import argparse
 import time
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -23,12 +24,14 @@ from rdkit import Chem
 
 
 EXCLUDE_DATASETS = {"Tox21", "HIV", "herg_central"}
-
-DEFAULT_CHECKPOINT = (
-    "/vast/projects/myatskar/design-documents/hf_home/attnsom_results/attnsom_checkpoint.pt"
+CACHE_DIR = Path(__file__).resolve().parent
+DEFAULT_CHECKPOINT = os.environ.get(
+    "ATTNSOM_CHECKPOINT",
+    str(CACHE_DIR / "attnsom" / "attnsom_checkpoint.pt"),
 )
-DEFAULT_DATA_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "..", "data", "tdc", "raw"
+DEFAULT_DATA_DIR = os.environ.get(
+    "THERAPEUTIC_TOOLS_TDC_DATA_DIR",
+    str(CACHE_DIR / "tdc" / "raw"),
 )
 
 

@@ -8,7 +8,8 @@
 #SBATCH --time=01:00:00
 
 export PYTHONUNBUFFERED=1
-CACHE_DIR="/vast/home/j/jojolee/OpenRLHF-Tools/openrlhf/tools/therapeutic_tools/cache"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CACHE_DIR="$SCRIPT_DIR"
 ATTNSOM_PY=/vast/projects/myatskar/design-documents/conda_env/openrlhf/bin/python
 
 cd "$CACHE_DIR/.."

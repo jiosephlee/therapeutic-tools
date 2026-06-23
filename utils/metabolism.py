@@ -161,12 +161,13 @@ def _predict_attnsom(smiles: str, isoforms: Optional[List[str]] = None) -> str:
     if "_ATTNSOM_PREDICTOR" not in globals() or _ATTNSOM_PREDICTOR is None:
         ckpt_path = os.environ.get("ATTNSOM_CHECKPOINT")
         if not ckpt_path:
+            from .. import paths
+
             candidates = [
-                "/vast/projects/myatskar/design-documents/hf_home/attnsom_results_v2/attnsom_checkpoint.pt",
-                "/vast/projects/myatskar/design-documents/hf_home/attnsom_results/attnsom_checkpoint.pt",
-                os.path.join(os.path.dirname(__file__), "..", "ATTNSOM", "results", "attnsom_checkpoint.pt"),
+                paths.cache_path("attnsom", "attnsom_checkpoint.pt"),
+                paths.PACKAGE_DIR / "ATTNSOM" / "results" / "attnsom_checkpoint.pt",
             ]
-            ckpt_path = next((p for p in candidates if os.path.exists(p)), candidates[0])
+            ckpt_path = next((str(p) for p in candidates if os.path.exists(p)), str(candidates[0]))
         if not os.path.exists(ckpt_path):
             raise FileNotFoundError(f"ATTNSOM checkpoint not found at {ckpt_path}")
         _ATTNSOM_PREDICTOR = ATTNSOMPredictor(ckpt_path)

@@ -7,14 +7,16 @@
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 #SBATCH --time=04:00:00
-#SBATCH --output=/vast/projects/myatskar/design-documents/hf_home/attnsom_results_v2/retrain_%j.log
+#SBATCH --output=attnsom_retrain_%j.log
 
 set -euo pipefail
 
 source /vast/projects/myatskar/design-documents/conda_env/openrlhf/bin/activate 2>/dev/null || true
 export PATH="/vast/projects/myatskar/design-documents/conda_env/openrlhf/bin:$PATH"
 
-RESULT_DIR="/vast/projects/myatskar/design-documents/hf_home/attnsom_results_v2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+RESULT_DIR="${ATTNSOM_RESULT_DIR:-$PACKAGE_DIR/cache/attnsom/results}"
 mkdir -p "$RESULT_DIR"
 
 echo "=== ATTNSOM Retraining ==="
@@ -22,7 +24,7 @@ echo "Result dir: $RESULT_DIR"
 echo "Start time: $(date)"
 echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
 
-cd /vast/home/j/jojolee/OpenRLHF-Tools/openrlhf/tools/therapeutic_tools/ATTNSOM
+cd "${ATTNSOM_ROOT:-$PACKAGE_DIR/ATTNSOM}"
 
 python retrain.py \
     --max_epochs 200 \

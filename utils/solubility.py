@@ -8,6 +8,7 @@ The MiniMol model is trained on AqSolDB (~9.9k molecules) and cached at
   tools/therapeutic_tools/cache/minimol_solubility/minimol_solubility_ridge.pkl
 """
 
+import math
 from typing import Dict, Any
 
 _minimol_predictor = None
@@ -42,11 +43,8 @@ def _get_minimol_predictor():
     if _minimol_predictor is not None:
         return _minimol_predictor
     try:
-        import sys
-        _MINIMOL_UTILS = "/vast/projects/myatskar/design-documents/joseph/therapeutic-tuning"
-        if _MINIMOL_UTILS not in sys.path:
-            sys.path.insert(0, _MINIMOL_UTILS)
-        from utils.minimol_solubility import MiniMolSolubility
+        from .minimol_solubility import MiniMolSolubility
+
         _minimol_predictor = MiniMolSolubility()
         return _minimol_predictor
     except Exception:

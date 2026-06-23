@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "therapeutic_tools.duckdb",
+      "description": "Primary DuckDB feature cache used by therapeutic_tools.",
+      "required": true,
+      "min_bytes": 10000000000
+    },
+    {
+      "path": "structured_feature_cache.sqlite",
+      "description": "Legacy structured feature cache used outside duckdb_only mode.",
+      "required": false,
+      "min_bytes": 1
+    },
+    {
+      "path": "minimol_solubility/minimol_solubility_ridge.pkl",
+      "description": "MiniMol + Ridge solubility model.",
+      "required": false,
+      "min_bytes": 1
+    }
+  ]
+}

@@ -21,6 +21,8 @@ _METADATA_PATH = os.path.join(_CACHE_DIR, "tdc_metadata_consolidated.csv")
 @lru_cache(maxsize=1)
 def _load_metadata() -> Optional[pd.DataFrame]:
     """Load the consolidated metadata CSV indexed by Drug (SMILES)."""
+    if os.environ.get("THERAPEUTIC_TOOLS_CACHE_BACKEND", "").lower() == "duckdb_only":
+        raise RuntimeError("metadata_cache is disabled in THERAPEUTIC_TOOLS_CACHE_BACKEND=duckdb_only")
     if not os.path.exists(_METADATA_PATH):
         return None
     df = pd.read_csv(_METADATA_PATH)

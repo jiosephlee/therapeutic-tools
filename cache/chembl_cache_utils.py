@@ -4,6 +4,7 @@ import csv
 import json
 import tarfile
 from collections import defaultdict
+import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
@@ -11,7 +12,6 @@ from rdkit import Chem
 
 
 CACHE_DIR = Path(__file__).resolve().parent
-REPO_ROOT = CACHE_DIR.parent.parent.parent.parent
 
 CHEMBL_CACHE_DIR = CACHE_DIR / "chembl"
 CHEMBL_RAW_DIR = CHEMBL_CACHE_DIR / "raw"
@@ -22,7 +22,12 @@ CHEMBL_H5_PATH = CHEMBL_RAW_DIR / "chembl_36.h5"
 CHEMBL_CHEMREPS_PATH = CHEMBL_RAW_DIR / "chembl_36_chemreps.txt.gz"
 CHEMBL_SQLITE_TAR_PATH = CHEMBL_RAW_DIR / "chembl_36_sqlite.tar.gz"
 
-OFFICIAL_V15_DATASET_DIR = REPO_ROOT / "data" / "tdc" / "official_v15_dataset"
+OFFICIAL_V15_DATASET_DIR = Path(
+    os.environ.get(
+        "THERAPEUTIC_TOOLS_OFFICIAL_V15_DATASET_DIR",
+        str(CACHE_DIR / "tdc" / "official_v15_dataset"),
+    )
+)
 
 
 def ensure_directory(path: Path) -> Path:

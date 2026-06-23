@@ -5,9 +5,9 @@ Both callables (`get_mol_properties_and_fg` and `compare_similar_mols`) delegate
 to `trim.reasoning.agent_tools.build_openai_tool_runtime()` so eval-time tool
 outputs byte-match the training traces produced by TRIM.
 
-TRIM is expected to be an external standalone checkout (no longer a submodule).
-The location is resolved from the ``TRIM_ROOT`` environment variable, defaulting
-to ``/vast/projects/myatskar/design-documents/joseph/trim``.
+TRIM is expected to be an external standalone checkout. The location is
+resolved from the ``TRIM_ROOT`` environment variable when these legacy tools
+are called.
 """
 
 from __future__ import annotations

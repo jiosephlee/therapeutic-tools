@@ -209,3 +209,15 @@ __marimo__/
 # Large local-only caches
 cache/minimol_embeddings/
 cache/fingerprints_with_canonicalized_no_salts/*.npz.bak
+cache/*.duckdb
+cache/*.duckdb.wal
+cache/*.duckdb.wal.*
+cache/*.sqlite
+cache/*.sqlite-wal
+cache/*.sqlite-shm
+cache/*backup*/
+cache/*pre_large_feature_cache*
+cache/attnsom/
+cache/fame3r_models/
+cache/tdc/
+cache/backfills/

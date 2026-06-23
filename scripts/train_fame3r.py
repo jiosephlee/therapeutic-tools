@@ -26,7 +26,10 @@ CYP_DATASET_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "ATTNSOM", "cyp_dataset"
 )
-DEFAULT_OUTPUT_DIR = "/vast/projects/myatskar/design-documents/hf_home/fame3r_models"
+DEFAULT_OUTPUT_DIR = os.environ.get(
+    "FAME3R_OUTPUT_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache", "fame3r_models"),
+)
 
 
 def extract_som_indices(mol) -> set:

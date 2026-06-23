@@ -15,6 +15,7 @@ from rdkit.Chem import Crippen, Descriptors, Lipinski, QED as QEDModule, rdMolDe
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
 from . import metadata_cache
+from .structured_feature_cache import get_or_compute as _structured_cache_get_or_compute
 
 EndpointFormat = Literal["raw", "text"]
 
@@ -53,8 +54,12 @@ def _numeric_endpoint(
     mol = _mol(smiles)
     if mol is None:
         return None if format == "raw" else _invalid_text(label, smiles)
-    cached = _cached(smiles, prop)
-    value = float(cached) if cached is not None else float(compute(mol))
+
+    def _compute_value() -> float:
+        cached = _cached(smiles, prop)
+        return float(cached) if cached is not None else float(compute(mol))
+
+    value = float(_structured_cache_get_or_compute(prop, smiles, None, _compute_value))
     if format == "raw":
         return value
     return _fmt_number(label, value, unit=unit, decimals=decimals)
@@ -77,13 +82,15 @@ def qed(smiles: str, format: EndpointFormat = "raw") -> float | str | None:
 
 
 def solubility_log_s(smiles: str, format: EndpointFormat = "raw") -> float | str | None:
-    cached = _cached(smiles, "minimol_solubility_log_mol_L")
-    if cached is not None:
-        value = float(cached)
-    else:
+    def _compute_value() -> float:
+        cached = _cached(smiles, "minimol_solubility_log_mol_L")
+        if cached is not None:
+            return float(cached)
         from .solubility import _esol
 
-        value = float(_esol(smiles))
+        return float(_esol(smiles))
+
+    value = float(_structured_cache_get_or_compute("solubility_log_s", smiles, None, _compute_value))
     if math.isnan(value):
         return None if format == "raw" else _invalid_text("Solubility logS", smiles)
     if format == "raw":
@@ -96,20 +103,23 @@ def pka_summary(smiles: str, format: EndpointFormat = "raw") -> dict[str, Any] |
     if mol is None:
         return None if format == "raw" else _invalid_text("pKa summary", smiles)
 
-    cached = metadata_cache.lookup_row(smiles)
-    try:
-        from .adme import _get_pka_data
+    def _compute_value() -> dict[str, Any]:
+        cached = metadata_cache.lookup_row(smiles)
+        try:
+            from .adme import _get_pka_data
 
-        data = _get_pka_data(smiles, cached)
-    except Exception:
-        data = {
-            "most_acidic_pka": cached.get("most_acidic_pka") if cached else None,
-            "most_basic_pka": cached.get("most_basic_pka") if cached else None,
-            "num_acidic_sites": int(cached.get("num_acidic_sites", 0)) if cached else 0,
-            "num_basic_sites": int(cached.get("num_basic_sites", 0)) if cached else 0,
-            "acid_sites": None,
-            "base_sites": None,
-        }
+            return _get_pka_data(smiles, cached)
+        except Exception:
+            return {
+                "most_acidic_pka": cached.get("most_acidic_pka") if cached else None,
+                "most_basic_pka": cached.get("most_basic_pka") if cached else None,
+                "num_acidic_sites": int(cached.get("num_acidic_sites", 0)) if cached else 0,
+                "num_basic_sites": int(cached.get("num_basic_sites", 0)) if cached else 0,
+                "acid_sites": None,
+                "base_sites": None,
+            }
+
+    data = _structured_cache_get_or_compute("pka_summary", smiles, None, _compute_value)
     if format == "raw":
         return data
     acid = data.get("most_acidic_pka")
@@ -124,16 +134,19 @@ def logd_74(smiles: str, format: EndpointFormat = "raw") -> float | str | None:
     mol = _mol(smiles)
     if mol is None:
         return None if format == "raw" else _invalid_text("LogD at pH 7.4", smiles)
-    cached = _cached(smiles, "logD_74")
-    if cached is not None:
-        value = float(cached)
-    else:
+
+    def _compute_value() -> float:
+        cached = _cached(smiles, "logD_74")
+        if cached is not None:
+            return float(cached)
         try:
             from .adme import _estimate_logd_from_pka
 
-            value = float(_estimate_logd_from_pka(smiles, 7.4, pka_summary(smiles), metadata_cache.lookup_row(smiles)))
+            return float(_estimate_logd_from_pka(smiles, 7.4, pka_summary(smiles), metadata_cache.lookup_row(smiles)))
         except Exception:
-            value = float(Crippen.MolLogP(mol))
+            return float(Crippen.MolLogP(mol))
+
+    value = float(_structured_cache_get_or_compute("logd_74", smiles, {"ph": 7.4}, _compute_value))
     if format == "raw":
         return value
     return _fmt_number("LogD at pH 7.4", value)
@@ -165,11 +178,16 @@ def functional_group_names(smiles: str, format: EndpointFormat = "raw") -> list[
     mol = _mol(smiles)
     if mol is None:
         return None if format == "raw" else _invalid_text("Functional groups", smiles)
-    names: list[str] = []
-    for name, smarts in _FG_PATTERNS:
-        pattern = Chem.MolFromSmarts(smarts)
-        if pattern is not None and mol.HasSubstructMatch(pattern):
-            names.append(name)
+
+    def _compute_value() -> list[str]:
+        names: list[str] = []
+        for name, smarts in _FG_PATTERNS:
+            pattern = Chem.MolFromSmarts(smarts)
+            if pattern is not None and mol.HasSubstructMatch(pattern):
+                names.append(name)
+        return names
+
+    names = _structured_cache_get_or_compute("functional_group_names", smiles, None, _compute_value)
     if format == "raw":
         return names
     return "Functional groups: " + (", ".join(names) if names else "none detected")
@@ -179,16 +197,20 @@ def ring_summary(smiles: str, format: EndpointFormat = "raw") -> dict[str, Any] 
     mol = _mol(smiles)
     if mol is None:
         return None if format == "raw" else _invalid_text("Ring summary", smiles)
-    ring_info = mol.GetRingInfo()
-    atom_rings = ring_info.AtomRings()
-    summary = {
-        "ring_count": int(_cached(smiles, "RingCount") or Lipinski.RingCount(mol)),
-        "aromatic_rings": int(_cached(smiles, "NumAromaticRings") or Lipinski.NumAromaticRings(mol)),
-        "aliphatic_rings": int(_cached(smiles, "NumAliphaticRings") or Lipinski.NumAliphaticRings(mol)),
-        "saturated_rings": int(_cached(smiles, "NumSaturatedRings") or Lipinski.NumSaturatedRings(mol)),
-        "heterocycles": int(_cached(smiles, "NumHeterocycles") or Lipinski.NumHeterocycles(mol)),
-        "largest_ring_size": max((len(ring) for ring in atom_rings), default=0),
-    }
+
+    def _compute_value() -> dict[str, Any]:
+        ring_info = mol.GetRingInfo()
+        atom_rings = ring_info.AtomRings()
+        return {
+            "ring_count": int(_cached(smiles, "RingCount") or Lipinski.RingCount(mol)),
+            "aromatic_rings": int(_cached(smiles, "NumAromaticRings") or Lipinski.NumAromaticRings(mol)),
+            "aliphatic_rings": int(_cached(smiles, "NumAliphaticRings") or Lipinski.NumAliphaticRings(mol)),
+            "saturated_rings": int(_cached(smiles, "NumSaturatedRings") or Lipinski.NumSaturatedRings(mol)),
+            "heterocycles": int(_cached(smiles, "NumHeterocycles") or Lipinski.NumHeterocycles(mol)),
+            "largest_ring_size": max((len(ring) for ring in atom_rings), default=0),
+        }
+
+    summary = _structured_cache_get_or_compute("ring_summary", smiles, None, _compute_value)
     if format == "raw":
         return summary
     return (
@@ -202,8 +224,12 @@ def murcko_scaffold(smiles: str, format: EndpointFormat = "raw") -> str | None:
     mol = _mol(smiles)
     if mol is None:
         return None if format == "raw" else _invalid_text("Murcko scaffold", smiles)
-    core = MurckoScaffold.GetScaffoldForMol(mol)
-    scaffold = Chem.MolToSmiles(core) if core.GetNumAtoms() > 0 else ""
+
+    def _compute_value() -> str:
+        core = MurckoScaffold.GetScaffoldForMol(mol)
+        return Chem.MolToSmiles(core) if core.GetNumAtoms() > 0 else ""
+
+    scaffold = str(_structured_cache_get_or_compute("murcko_scaffold", smiles, None, _compute_value))
     if format == "raw":
         return scaffold
     return f"Murcko scaffold: {scaffold if scaffold else '(acyclic molecule - no scaffold)'}"

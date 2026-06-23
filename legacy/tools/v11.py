@@ -222,11 +222,12 @@ def _compute_electronic(smiles: str) -> str:
 
 def _compute_pka(smiles: str) -> str:
     """pKa prediction via MolGpKa."""
-    from ..utils.adme import _get_pka_data, _format_pka_section
-    from ..utils import metadata_cache
+    from ..utils import endpoints
+    from ..utils.adme import _format_pka_section
 
-    cached = metadata_cache.lookup_row(smiles)
-    pka_data = _get_pka_data(smiles, cached)
+    pka_data = endpoints.pka_summary(smiles)
+    if pka_data is None:
+        return f"pKa Summary:\n- Invalid SMILES: {smiles!r}"
     return _format_pka_section(smiles, pka_data, simple=True)
 
 
@@ -242,12 +243,11 @@ def _compute_ionization(smiles: str) -> str:
 
 def _compute_logd(smiles: str) -> str:
     """LogD at pH 7.4 from Henderson-Hasselbalch."""
-    from ..utils.adme import _get_pka_data, _estimate_logd_from_pka
-    from ..utils import metadata_cache
+    from ..utils import endpoints
 
-    cached = metadata_cache.lookup_row(smiles)
-    pka_data = _get_pka_data(smiles, cached)
-    logd = _estimate_logd_from_pka(smiles, 7.4, pka_data, cached)
+    logd = endpoints.logd_74(smiles)
+    if logd is None:
+        return "LogD at pH 7.4: unavailable"
     return f"LogD at pH 7.4: {logd:.2f}"
 
 

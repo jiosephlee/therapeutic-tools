@@ -30,6 +30,7 @@ Usage:
     python build_fingerprint_embeddings.py --output-subdir fingerprints_with_canonicalized
 """
 
+import os
 import sys
 import logging
 import argparse
@@ -45,9 +46,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _CACHE_DIR = Path(__file__).parent                    # .../therapeutic_tools/cache
-_REPO_ROOT = _CACHE_DIR.parent.parent.parent.parent   # .../OpenRLHF-Tools
-_RAW_DATA_DIR = _REPO_ROOT / "data" / "tdc" / "raw_deduplicated"
-_RAW_FALLBACK_DATA_DIR = _REPO_ROOT / "data" / "tdc" / "raw"
+_RAW_DATA_DIR = Path(
+    os.environ.get("THERAPEUTIC_TOOLS_TDC_DEDUP_DATA_DIR", str(_CACHE_DIR / "tdc" / "raw_deduplicated"))
+)
+_RAW_FALLBACK_DATA_DIR = Path(
+    os.environ.get("THERAPEUTIC_TOOLS_TDC_DATA_DIR", str(_CACHE_DIR / "tdc" / "raw"))
+)
 
 TASKS = [
     "Carcinogens_Lagunin",

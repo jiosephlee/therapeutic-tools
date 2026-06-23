@@ -18,6 +18,7 @@ import os
 import sys
 import time
 from multiprocessing import Pool, cpu_count
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
@@ -27,6 +28,11 @@ import pandas as pd
 
 
 EXCLUDE_DATASETS = {"Tox21", "HIV", "herg_central"}
+CACHE_DIR = Path(__file__).resolve().parent
+DEFAULT_DATA_DIR = os.environ.get(
+    "THERAPEUTIC_TOOLS_TDC_DATA_DIR",
+    str(CACHE_DIR / "tdc" / "raw"),
+)
 
 
 def collect_all_smiles(data_dir: str) -> list:
@@ -49,7 +55,7 @@ def collect_all_smiles(data_dir: str) -> list:
 
 def _compute_entry(smiles: str) -> dict:
     try:
-        from openrlhf.tools.therapeutic_tools.tools.v17_cache import compute_artifacts
+        from therapeutic_tools.tools.v17_cache import compute_artifacts
 
         return compute_artifacts(smiles)
     except Exception as e:
@@ -60,7 +66,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--data_dir",
-        default="/vast/projects/myatskar/design-documents/joseph/therapeutic-tuning/data/TDC",
+        default=DEFAULT_DATA_DIR,
     )
     parser.add_argument("--workers", type=int, default=min(8, cpu_count()))
     parser.add_argument(
